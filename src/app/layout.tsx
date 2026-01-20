@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { User, LogOut } from "lucide-react";
+import { UserButton, SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
+import { SyncUser } from "@/components/SyncUser";
 import Link from "next/link";
 import "./globals.css";
 
@@ -11,22 +11,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [userName, setUserName] = useState<string | null>(null);
-
-  useEffect(() => {
-    setUserName(localStorage.getItem("game_user_name"));
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem("game_user_name");
-    localStorage.removeItem("game_user_id");
-    window.location.href = "/login";
-  };
-
   return (
     <html lang="es">
       <body className="antialiased">
         <ConvexClientProvider>
+          <SyncUser />
           <div className="max-w-4xl mx-auto px-4 py-8">
             <header className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12 border-b border-white/5 pb-8">
               <Link href="/">
@@ -41,21 +30,16 @@ export default function RootLayout({
 
                 <div className="h-6 w-px bg-white/10 hidden md:block" />
 
-                {userName ? (
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
-                      <User className="w-4 h-4 text-blue-400" />
-                      <span className="text-sm font-semibold">{userName}</span>
-                    </div>
-                    <button onClick={handleLogout} className="text-gray-500 hover:text-red-400 transition-colors">
-                      <LogOut className="w-5 h-5" />
+                <SignedIn>
+                  <UserButton afterSignOutUrl="/" />
+                </SignedIn>
+                <SignedOut>
+                  <SignInButton mode="modal">
+                    <button className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-full font-bold text-sm transition-all shadow-lg shadow-blue-500/20">
+                      Ingresar
                     </button>
-                  </div>
-                ) : (
-                  <Link href="/login" className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-full font-bold text-sm transition-all shadow-lg shadow-blue-500/20">
-                    Ingresar
-                  </Link>
-                )}
+                  </SignInButton>
+                </SignedOut>
               </div>
             </header>
             <main>{children}</main>
@@ -65,3 +49,4 @@ export default function RootLayout({
     </html>
   );
 }
+

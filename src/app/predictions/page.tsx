@@ -3,39 +3,21 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Save, Calendar, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useUser } from "@clerk/nextjs";
 
 export default function Predictions() {
+  const { user, isLoaded } = useUser();
   const matches = useQuery(api.matches.list) || [];
   const submitPrediction = useMutation(api.predictions.submit);
-  
-  const [userId, setUserId] = useState<string | null>(null);
-  const router = useRouter();
-
-  useEffect(() => {
-    const storedId = localStorage.getItem("game_user_id");
-    if (!storedId) {
-      router.push("/login");
-    } else {
-      setUserId(storedId);
-    }
-  }, [router]);
-
-  const userPredictions = useQuery(
-    api.predictions.getForUser, 
-    userId ? { userId: userId as any } : "skip"
-  ) || [];
-
+  const userPredictions = useQuery(api.predictions.getMine, isLoaded && user ? {} : "skip") || [];
   const [saving, setSaving] = useState<string | null>(null);
 
   const handleSave = async (matchId: any, homeScore: number, awayScore: number) => {
-    if (!userId) return;
     setSaving(matchId);
     try {
       await submitPrediction({
-        userId: userId as any,
         matchId,
         homeScore,
         awayScore,
@@ -45,6 +27,14 @@ export default function Predictions() {
     }
     setTimeout(() => setSaving(null), 1000);
   };
+
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -80,7 +70,6 @@ function MatchCard({ match, prediction, onSave, isSaving }: any) {
 
   const hasChanged = prediction?.homeScore !== Number(homeScore) || prediction?.awayScore !== Number(awayScore);
 
-  // Fallback for names if details are missing (e.g. during migration or dev sync)
   const homeName = match.homeTeamDetails?.name || (typeof match.homeTeam === "string" ? match.homeTeam : "TBD");
   const awayName = match.awayTeamDetails?.name || (typeof match.awayTeam === "string" ? match.awayTeam : "TBD");
 
@@ -150,3 +139,4 @@ function MatchCard({ match, prediction, onSave, isSaving }: any) {
     </div>
   );
 }
+

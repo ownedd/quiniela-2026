@@ -8,7 +8,6 @@
  * @module
  */
 
-import type * as debug from "../debug.js";
 import type * as matches from "../matches.js";
 import type * as predictions from "../predictions.js";
 import type * as seedData from "../seedData.js";
@@ -22,7 +21,6 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  debug: typeof debug;
   matches: typeof matches;
   predictions: typeof predictions;
   seedData: typeof seedData;
