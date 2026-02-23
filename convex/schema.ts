@@ -6,6 +6,7 @@ export default defineSchema({
     name: v.string(),
     email: v.string(),
     image: v.optional(v.string()),
+    displayName: v.optional(v.string()),
     score: v.number(),
     clerkId: v.optional(v.string()),
   }).index("by_clerkId", ["clerkId"]),

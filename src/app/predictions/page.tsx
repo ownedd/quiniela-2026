@@ -46,10 +46,10 @@ export default function Predictions() {
       <div className="grid gap-6">
         {matches.length > 0 ? (
           matches.map((match) => (
-            <MatchCard 
-              key={match._id} 
-              match={match} 
-              prediction={userPredictions.find(p => p.matchId === match._id)}
+            <MatchCard
+              key={match._id}
+              match={match}
+              prediction={userPredictions.find((p) => p.matchId === match._id)}
               onSave={handleSave}
               isSaving={saving === match._id}
             />
@@ -139,4 +139,3 @@ function MatchCard({ match, prediction, onSave, isSaving }: any) {
     </div>
   );
 }
-
