@@ -12,8 +12,8 @@ export const list = query({
       const awayTeam = await ctx.db.get(match.awayTeam);
       results.push({
         ...match,
-        homeTeamDetails: homeTeam ? { name: homeTeam.name, code: homeTeam.code } : null,
-        awayTeamDetails: awayTeam ? { name: awayTeam.name, code: awayTeam.code } : null,
+        homeTeamDetails: homeTeam ? { name: homeTeam.name, code: homeTeam.code, flagUrl: homeTeam.flagUrl } : null,
+        awayTeamDetails: awayTeam ? { name: awayTeam.name, code: awayTeam.code, flagUrl: awayTeam.flagUrl } : null,
       });
     }
     return results;
@@ -30,8 +30,8 @@ export const byGroup = query({
       const awayTeam = await ctx.db.get(match.awayTeam);
       populated.push({
         ...match,
-        homeTeamDetails: homeTeam ? { name: homeTeam.name, code: homeTeam.code } : null,
-        awayTeamDetails: awayTeam ? { name: awayTeam.name, code: awayTeam.code } : null,
+        homeTeamDetails: homeTeam ? { name: homeTeam.name, code: homeTeam.code, flagUrl: homeTeam.flagUrl } : null,
+        awayTeamDetails: awayTeam ? { name: awayTeam.name, code: awayTeam.code, flagUrl: awayTeam.flagUrl } : null,
       });
     }
 
