@@ -1,4 +1,7 @@
 import { mutation, query } from "./_generated/server";
+import { v } from "convex/values";
+import type { MutationCtx } from "./_generated/server";
+import { recalculateLeaderboardInMutation } from "./scoring";
 import { teams, matches } from "./seedData";
 import { Id } from "./_generated/dataModel";
 
@@ -92,5 +95,35 @@ export const seed = mutation({
     }
     
     return { teamsInserted: teams.length, matchesInserted: matches.length };
+  },
+});
+
+async function requireAdmin(ctx: MutationCtx) {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) throw new Error("Sin autenticación");
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+    .unique();
+  if (!user?.isAdmin) throw new Error("Solo administradores pueden cargar resultados");
+  return user;
+}
+
+export const setResult = mutation({
+  args: {
+    matchId: v.id("matches"),
+    homeScore: v.number(),
+    awayScore: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const match = await ctx.db.get(args.matchId);
+    if (!match) throw new Error("Partido no encontrado");
+    await ctx.db.patch(args.matchId, {
+      homeScore: args.homeScore,
+      awayScore: args.awayScore,
+      status: "finished",
+    });
+    await recalculateLeaderboardInMutation(ctx);
   },
 });

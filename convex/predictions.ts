@@ -1,6 +1,16 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
+export const getByUserId = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    return await ctx.db
+      .query("predictions")
+      .withIndex("by_user_match", (q) => q.eq("userId", userId))
+      .collect();
+  },
+});
+
 export const getMine = query({
   args: {},
   handler: async (ctx) => {
@@ -29,6 +39,11 @@ export const submit = mutation({
     awayScore: v.number(),
   },
   handler: async (ctx, args) => {
+    const settings = await ctx.db.query("tournamentSettings").first();
+    if (settings?.predictionsLocked) {
+      throw new Error("Las predicciones están cerradas desde el inicio del Mundial");
+    }
+
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Sin autenticación");

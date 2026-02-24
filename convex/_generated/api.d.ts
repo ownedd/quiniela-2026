@@ -10,8 +10,10 @@
 
 import type * as matches from "../matches.js";
 import type * as predictions from "../predictions.js";
+import type * as scoring from "../scoring.js";
 import type * as seedData from "../seedData.js";
 import type * as teams from "../teams.js";
+import type * as tournamentSettings from "../tournamentSettings.js";
 import type * as users from "../users.js";
 
 import type {
@@ -23,8 +25,10 @@ import type {
 declare const fullApi: ApiFromModules<{
   matches: typeof matches;
   predictions: typeof predictions;
+  scoring: typeof scoring;
   seedData: typeof seedData;
   teams: typeof teams;
+  tournamentSettings: typeof tournamentSettings;
   users: typeof users;
 }>;
 

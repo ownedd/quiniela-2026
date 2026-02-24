@@ -9,7 +9,14 @@ export default defineSchema({
     displayName: v.optional(v.string()),
     score: v.number(),
     clerkId: v.optional(v.string()),
-  }).index("by_clerkId", ["clerkId"]),
+    isAdmin: v.optional(v.boolean()),
+  }).index("by_clerkId", ["clerkId"]).index("by_score", ["score"]),
+
+  tournamentSettings: defineTable({
+    predictionsLocked: v.boolean(),
+    lockedAt: v.optional(v.string()),
+    updatedBy: v.optional(v.id("users")),
+  }),
 
   teams: defineTable({
     name: v.string(),
