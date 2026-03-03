@@ -22,14 +22,14 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const predictionsLocked = settings?.predictionsLocked ?? false;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <header className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12 border-b border-white/5 pb-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <header className="flex flex-col md:flex-row justify-between items-center gap-4 sm:gap-6 mb-8 sm:mb-12 border-b border-white/5 pb-6 sm:pb-8">
         <Link href="/">
-          <h1 className="text-4xl font-black gradient-text tracking-tighter">QUINIELA 2026</h1>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black gradient-text tracking-tighter">QUINIELA 2026</h1>
         </Link>
 
-        <div className="flex items-center gap-8">
-          <nav className="flex gap-6 font-medium text-gray-400">
+        <div className="flex flex-wrap items-center justify-center md:justify-end gap-4 sm:gap-6 md:gap-8 w-full md:w-auto">
+          <nav className="flex flex-wrap justify-center md:justify-start gap-4 sm:gap-6 font-medium text-gray-400 text-sm sm:text-base">
             <Link href="/" className="hover:text-blue-400 transition-colors">
               Inicio
             </Link>

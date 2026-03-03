@@ -52,8 +52,8 @@ export default function ProfilePage() {
 
   if (!user) {
     return (
-      <div className="space-y-8 animate-in fade-in duration-700">
-        <div className="glass-card p-12 text-center">
+      <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-700">
+        <div className="glass-card p-8 sm:p-12 text-center">
           <User className="w-16 h-16 text-gray-500 mx-auto mb-4 opacity-50" />
           <h2 className="text-xl font-bold mb-2">Perfil</h2>
           <p className="text-gray-400 mb-6">Inicia sesión para editar tu nombre mostrado en la tabla.</p>
@@ -69,13 +69,13 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col gap-2">
-        <h2 className="text-3xl font-bold">Mi Perfil</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold">Mi Perfil</h2>
         <p className="text-gray-400 font-medium">Personaliza el nombre que aparece en la tabla de posiciones</p>
       </div>
 
-      <div className="glass-card p-8 max-w-md">
+      <div className="glass-card p-4 sm:p-6 md:p-8 max-w-md w-full">
         {convexUser === undefined ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
@@ -114,7 +114,7 @@ export default function ProfilePage() {
             <button
               type="submit"
               disabled={saving || !isValid || !hasChanged}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 disabled:hover:bg-blue-600"
+              className="w-full min-h-[44px] flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 disabled:hover:bg-blue-600"
             >
               {saving ? (
                 <Loader2 className="w-5 h-5 animate-spin" />

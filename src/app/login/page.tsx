@@ -5,18 +5,18 @@ import { Trophy } from "lucide-react";
 
 export default function Login() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] animate-in fade-in zoom-in duration-500 gap-8">
-      <div className="flex flex-col items-center gap-4">
-        <div className="bg-blue-500/20 p-4 rounded-full">
+    <div className="flex flex-col items-center justify-center min-h-[80vh] animate-in fade-in zoom-in duration-500 gap-6 sm:gap-8 px-4">
+      <div className="flex flex-col items-center gap-4 w-full max-w-sm">
+        <div className="bg-blue-500/20 p-4 rounded-full shrink-0">
           <Trophy className="text-blue-400 w-10 h-10" />
         </div>
-        <h2 className="text-3xl font-bold text-center">Únete a la Quiniela</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold text-center">Únete a la Quiniela</h2>
         <p className="text-gray-400 text-center max-w-sm">
           Crea tu cuenta segura con Clerk para empezar a predecir resultados del Mundial 2026
         </p>
       </div>
 
-      <div className="glass-card p-2 border-t-4 border-t-blue-500">
+      <div className="glass-card p-2 sm:p-4 border-t-4 border-t-blue-500 w-full max-w-sm">
         <SignIn 
           routing="hash" 
           appearance={{

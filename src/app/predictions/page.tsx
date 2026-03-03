@@ -55,15 +55,15 @@ export default function Predictions() {
 
   if (predictionsLocked) {
     return (
-      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="flex flex-col gap-2">
-          <h2 className="text-3xl font-bold">Predicciones</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold">Predicciones</h2>
           <p className="text-gray-400 font-medium">
             Selecciona un participante para ver sus predicciones
           </p>
         </div>
 
-        <div className="glass-card p-6">
+        <div className="glass-card p-4 sm:p-6">
           <label className="block text-sm font-medium text-gray-400 mb-3">Participante</label>
           {leaderboard.length === 0 ? (
             <p className="text-gray-500 italic">No hay participantes en la tabla.</p>
@@ -96,7 +96,7 @@ export default function Predictions() {
         </div>
 
         {!selectedUserId ? (
-          <div className="glass-card p-12 text-center text-gray-500">
+          <div className="glass-card p-8 sm:p-12 text-center text-gray-500">
             <p className="italic">Selecciona un participante para ver sus predicciones.</p>
           </div>
         ) : (
@@ -117,7 +117,7 @@ export default function Predictions() {
                 ))}
               </div>
             )}
-            <div className="grid gap-6">
+            <div className="grid gap-4 sm:gap-6">
               {(activeGroup ?? groups[0]) && matchesByGroup[activeGroup ?? groups[0]]?.length > 0 ? (
                 matchesByGroup[activeGroup ?? groups[0]].map((match: any) => (
                   <MatchCardReadOnly
@@ -127,7 +127,7 @@ export default function Predictions() {
                   />
                 ))
               ) : (
-                <div className="glass-card p-12 text-center text-gray-500">
+                <div className="glass-card p-8 sm:p-12 text-center text-gray-500">
                   <p className="italic">Selecciona un grupo para ver los partidos.</p>
                 </div>
               )}
@@ -139,9 +139,9 @@ export default function Predictions() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col gap-2">
-        <h2 className="text-3xl font-bold">Mis Predicciones</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold">Mis Predicciones</h2>
         <p className="text-gray-400 font-medium">Define tus resultados antes del inicio del mundial</p>
       </div>
 
@@ -162,7 +162,7 @@ export default function Predictions() {
         </div>
       )}
 
-      <div className="grid gap-6">
+      <div className="grid gap-4 sm:gap-6">
         {(activeGroup ?? groups[0]) && matchesByGroup[activeGroup ?? groups[0]]?.length > 0 ? (
           matchesByGroup[activeGroup ?? groups[0]].map((match: any) => (
             <MatchCard
@@ -175,7 +175,7 @@ export default function Predictions() {
             />
           ))
         ) : (
-          <div className="glass-card p-12 text-center text-gray-500">
+          <div className="glass-card p-8 sm:p-12 text-center text-gray-500">
             <p className="italic">
               {groups.length === 0 ? "Cargando partidos o no hay partidos disponibles..." : "Selecciona un grupo para ver los partidos."}
             </p>
@@ -193,46 +193,46 @@ function MatchCardReadOnly({ match, prediction }: { match: any; prediction?: any
   const awayFlagUrl = match.awayTeamDetails?.flagUrl;
 
   return (
-    <div className="glass-card p-6 flex flex-col md:flex-row items-center justify-between gap-8 group hover:border-blue-500/30 transition-all">
-      <div className="flex flex-col gap-1 items-center md:items-start min-w-[120px]">
+    <div className="glass-card p-4 sm:p-6 flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6 md:gap-8 group hover:border-blue-500/30 transition-all">
+      <div className="flex flex-col gap-1 items-center md:items-start w-full md:w-auto md:min-w-0 shrink-0">
         <span className="text-[10px] uppercase tracking-widest text-blue-400 font-bold bg-blue-400/10 px-2 py-0.5 rounded">Grupo {match.group}</span>
         <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-          <Calendar className="w-3 h-3" />
+          <Calendar className="w-3 h-3 shrink-0" />
           {new Date(match.date).toLocaleDateString()}
         </div>
       </div>
 
-      <div className="flex items-center gap-4 md:gap-12 flex-1 justify-center">
-        <div className="flex flex-col items-center gap-2 flex-1 text-center">
-          <div className="w-14 h-14 rounded-full mb-1 border border-white/10 overflow-hidden flex items-center justify-center bg-white/5 shrink-0">
+      <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 md:gap-12 flex-1 w-full min-w-0 justify-center">
+        <div className="flex flex-col items-center gap-1 sm:gap-2 flex-1 text-center min-w-0 w-full sm:w-auto">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full border border-white/10 overflow-hidden flex items-center justify-center bg-white/5 shrink-0">
             {homeFlagUrl ? (
               <Image src={homeFlagUrl} alt={homeName} width={56} height={56} className="object-cover w-full h-full" unoptimized />
             ) : (
-              <span className="text-xl font-bold text-gray-400">{homeName[0] || "?"}</span>
+              <span className="text-base sm:text-xl font-bold text-gray-400">{homeName[0] || "?"}</span>
             )}
           </div>
-          <span className="font-semibold text-lg">{homeName}</span>
+          <span className="font-semibold text-sm sm:text-base md:text-lg truncate max-w-full px-1">{homeName}</span>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="w-14 h-14 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-2xl font-bold">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <span className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-lg sm:text-xl md:text-2xl font-bold">
             {prediction?.homeScore ?? "-"}
           </span>
-          <span className="text-2xl font-bold text-gray-600">vs</span>
-          <span className="w-14 h-14 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-2xl font-bold">
+          <span className="text-lg sm:text-xl md:text-2xl font-bold text-gray-600">vs</span>
+          <span className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-lg sm:text-xl md:text-2xl font-bold">
             {prediction?.awayScore ?? "-"}
           </span>
         </div>
 
-        <div className="flex flex-col items-center gap-2 flex-1 text-center">
-          <div className="w-14 h-14 rounded-full mb-1 border border-white/10 overflow-hidden flex items-center justify-center bg-white/5 shrink-0">
+        <div className="flex flex-col items-center gap-1 sm:gap-2 flex-1 text-center min-w-0 w-full sm:w-auto">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full border border-white/10 overflow-hidden flex items-center justify-center bg-white/5 shrink-0">
             {awayFlagUrl ? (
               <Image src={awayFlagUrl} alt={awayName} width={56} height={56} className="object-cover w-full h-full" unoptimized />
             ) : (
-              <span className="text-xl font-bold text-gray-400">{awayName[0] || "?"}</span>
+              <span className="text-base sm:text-xl font-bold text-gray-400">{awayName[0] || "?"}</span>
             )}
           </div>
-          <span className="font-semibold text-lg">{awayName}</span>
+          <span className="font-semibold text-sm sm:text-base md:text-lg truncate max-w-full px-1">{awayName}</span>
         </div>
       </div>
     </div>
@@ -251,28 +251,28 @@ function MatchCard({ match, prediction, onSave, isSaving, locked }: any) {
   const awayFlagUrl = match.awayTeamDetails?.flagUrl;
 
   return (
-    <div className="glass-card p-6 flex flex-col md:flex-row items-center justify-between gap-8 group hover:border-blue-500/30 transition-all">
-      <div className="flex flex-col gap-1 items-center md:items-start min-w-[120px]">
+    <div className="glass-card p-4 sm:p-6 flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6 md:gap-8 group hover:border-blue-500/30 transition-all">
+      <div className="flex flex-col gap-1 items-center md:items-start w-full md:w-auto md:min-w-0 shrink-0">
         <span className="text-[10px] uppercase tracking-widest text-blue-400 font-bold bg-blue-400/10 px-2 py-0.5 rounded">Grupo {match.group}</span>
         <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-          <Calendar className="w-3 h-3" />
+          <Calendar className="w-3 h-3 shrink-0" />
           {new Date(match.date).toLocaleDateString()}
         </div>
       </div>
 
-      <div className="flex items-center gap-4 md:gap-12 flex-1 justify-center">
-        <div className="flex flex-col items-center gap-2 flex-1 text-center">
-          <div className="w-14 h-14 rounded-full mb-1 border border-white/10 overflow-hidden flex items-center justify-center bg-white/5 shrink-0">
+      <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 md:gap-12 flex-1 w-full min-w-0 justify-center">
+        <div className="flex flex-col items-center gap-1 sm:gap-2 flex-1 text-center min-w-0 w-full sm:w-auto">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full border border-white/10 overflow-hidden flex items-center justify-center bg-white/5 shrink-0">
             {homeFlagUrl ? (
               <Image src={homeFlagUrl} alt={homeName} width={56} height={56} className="object-cover w-full h-full" unoptimized />
             ) : (
-              <span className="text-xl font-bold text-gray-400">{homeName[0] || "?"}</span>
+              <span className="text-base sm:text-xl font-bold text-gray-400">{homeName[0] || "?"}</span>
             )}
           </div>
-          <span className="font-semibold text-lg">{homeName}</span>
+          <span className="font-semibold text-sm sm:text-base md:text-lg truncate max-w-full px-1">{homeName}</span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <input
             type="number"
             min={0}
@@ -289,12 +289,12 @@ function MatchCard({ match, prediction, onSave, isSaving, locked }: any) {
               if (!isNaN(n) && n >= 0) setHomeScore(v);
             }}
             className={cn(
-              "w-14 h-14 bg-white/5 border border-white/10 rounded-xl text-center text-2xl font-bold focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+              "w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-white/5 border border-white/10 rounded-xl text-center text-lg sm:text-xl md:text-2xl font-bold focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none min-h-[44px] sm:min-h-0",
               locked && "opacity-50 cursor-not-allowed"
             )}
             placeholder="0"
           />
-          <span className="text-2xl font-bold text-gray-600">vs</span>
+          <span className="text-lg sm:text-xl md:text-2xl font-bold text-gray-600">vs</span>
           <input
             type="number"
             min={0}
@@ -311,22 +311,22 @@ function MatchCard({ match, prediction, onSave, isSaving, locked }: any) {
               if (!isNaN(n) && n >= 0) setAwayScore(v);
             }}
             className={cn(
-              "w-14 h-14 bg-white/5 border border-white/10 rounded-xl text-center text-2xl font-bold focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+              "w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-white/5 border border-white/10 rounded-xl text-center text-lg sm:text-xl md:text-2xl font-bold focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none min-h-[44px] sm:min-h-0",
               locked && "opacity-50 cursor-not-allowed"
             )}
             placeholder="0"
           />
         </div>
 
-        <div className="flex flex-col items-center gap-2 flex-1 text-center">
-          <div className="w-14 h-14 rounded-full mb-1 border border-white/10 overflow-hidden flex items-center justify-center bg-white/5 shrink-0">
+        <div className="flex flex-col items-center gap-1 sm:gap-2 flex-1 text-center min-w-0 w-full sm:w-auto">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full border border-white/10 overflow-hidden flex items-center justify-center bg-white/5 shrink-0">
             {awayFlagUrl ? (
               <Image src={awayFlagUrl} alt={awayName} width={56} height={56} className="object-cover w-full h-full" unoptimized />
             ) : (
               <span className="text-xl font-bold text-gray-400">{awayName[0] || "?"}</span>
             )}
           </div>
-          <span className="font-semibold text-lg">{awayName}</span>
+          <span className="font-semibold text-sm sm:text-base md:text-lg truncate max-w-full px-1">{awayName}</span>
         </div>
       </div>
 
@@ -334,7 +334,7 @@ function MatchCard({ match, prediction, onSave, isSaving, locked }: any) {
         onClick={() => onSave(match._id, Number(homeScore), Number(awayScore))}
         disabled={locked || !hasChanged || isSaving || homeScore === "" || awayScore === ""}
         className={cn(
-          "w-full md:w-auto px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all",
+          "w-full md:w-auto min-h-[44px] px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all",
           hasChanged && !isSaving && "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20",
           !hasChanged && "bg-white/5 text-gray-500 cursor-not-allowed",
           isSaving && "bg-blue-600/50 text-white cursor-wait"

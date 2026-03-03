@@ -10,26 +10,26 @@ export default function Home() {
   const users = useQuery(api.users.leaderboard);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      <section className="glass-card p-8">
-        <div className="flex items-center gap-4 mb-8">
-          <Trophy className="text-yellow-400 w-8 h-8" />
-          <h2 className="text-2xl font-semibold">Tabla de Posiciones</h2>
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-700">
+      <section className="glass-card p-4 sm:p-6 md:p-8 overflow-visible">
+        <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-8">
+          <Trophy className="text-yellow-400 w-6 h-6 sm:w-8 sm:h-8 shrink-0" />
+          <h2 className="text-xl sm:text-2xl font-semibold">Tabla de Posiciones</h2>
         </div>
 
-        <div className="overflow-hidden rounded-xl border border-white/10">
-          <table className="w-full text-left border-collapse">
+        <div className="overflow-x-auto rounded-xl border border-white/10" style={{ WebkitOverflowScrolling: "touch" }}>
+          <table className="w-full min-w-[360px] text-left border-collapse">
             <thead>
               <tr className="bg-white/5">
-                <th className="px-6 py-4 font-semibold uppercase text-xs tracking-wider text-gray-400">Posición</th>
-                <th className="px-6 py-4 font-semibold uppercase text-xs tracking-wider text-gray-400">Usuario</th>
-                <th className="px-6 py-4 font-semibold uppercase text-xs tracking-wider text-gray-400 text-right">Puntuación</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold uppercase text-xs tracking-wider text-gray-400 whitespace-nowrap">Posición</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold uppercase text-xs tracking-wider text-gray-400">Usuario</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold uppercase text-xs tracking-wider text-gray-400 text-right whitespace-nowrap min-w-[90px]">Puntuación</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {users === undefined ? (
                 <tr>
-                  <td colSpan={3} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={3} className="px-3 sm:px-6 py-8 sm:py-12 text-center text-gray-500">
                     <div className="flex flex-col items-center gap-2">
                       <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
                       <p>Cargando participantes...</p>
@@ -40,7 +40,7 @@ export default function Home() {
                 // @ts-ignore
                 users.map((user, index) => (
                   <tr key={user._id} className="hover:bg-white/5 transition-colors group">
-                    <td className="px-6 py-4">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4">
                       <div className="flex items-center gap-2">
                         {index === 0 && <Medal className="text-yellow-400 w-5 h-5 animate-bounce" />}
                         {index === 1 && <Medal className="text-gray-400 w-5 h-5" />}
@@ -48,34 +48,36 @@ export default function Home() {
                         <span className={index < 3 ? "font-bold text-white" : "text-gray-400"}>#{index + 1}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        {user.image ? (
-                          <Image
-                            src={user.image}
-                            alt={user.displayName?.trim() || user.name}
-                            width={32}
-                            height={32}
-                            className="rounded-full ring-2 ring-white/10 group-hover:ring-blue-500/40 transition-all"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center ring-2 ring-white/10">
-                            <User className="w-4 h-4 text-gray-400" />
-                          </div>
-                        )}
-                        <span className="font-medium group-hover:text-blue-400 transition-colors">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4">
+                      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                        <span className="hidden sm:block shrink-0">
+                          {user.image ? (
+                            <Image
+                              src={user.image}
+                              alt={user.displayName?.trim() || user.name}
+                              width={32}
+                              height={32}
+                              className="rounded-full ring-2 ring-white/10 group-hover:ring-blue-500/40 transition-all"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center ring-2 ring-white/10">
+                              <User className="w-4 h-4 text-gray-400" />
+                            </div>
+                          )}
+                        </span>
+                        <span className="font-medium group-hover:text-blue-400 transition-colors break-words whitespace-normal">
                           {user.displayName?.trim() || user.name}
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-right whitespace-nowrap">
                       <span className="bg-blue-500/10 text-blue-400 px-3 py-1 rounded-full text-sm font-bold border border-blue-500/20">{user.score} pts</span>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={3} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={3} className="px-3 sm:px-6 py-8 sm:py-12 text-center text-gray-500">
                     <div className="flex flex-col items-center gap-2">
                       <User className="w-12 h-12 opacity-20" />
                       <p>No hay participantes aún.</p>
@@ -89,8 +91,8 @@ export default function Home() {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="glass-card p-6 border-l-4 border-l-blue-500 hover:scale-[1.02] transition-transform cursor-default">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        <div className="glass-card p-4 sm:p-6 border-l-4 border-l-blue-500 hover:scale-[1.02] transition-transform cursor-default">
           <h3 className="font-bold mb-2">¿Cómo ganar puntos?</h3>
           <ul className="text-sm text-gray-400 space-y-2">
             <li>
@@ -101,7 +103,7 @@ export default function Home() {
             </li>
           </ul>
         </div>
-        <div className="glass-card p-6 border-l-4 border-l-purple-500 hover:scale-[1.02] transition-transform cursor-default">
+        <div className="glass-card p-4 sm:p-6 border-l-4 border-l-purple-500 hover:scale-[1.02] transition-transform cursor-default">
           <h3 className="font-bold mb-2">Próximos Pasos</h3>
           <p className="text-sm text-gray-400">
             Ve a la sección de{" "}
