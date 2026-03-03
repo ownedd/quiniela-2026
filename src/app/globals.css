@@ -48,3 +48,11 @@ input[type="number"] {
   -moz-appearance: textfield !important;
   appearance: textfield !important;
 }
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

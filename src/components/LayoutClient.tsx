@@ -5,6 +5,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import { SyncUser } from "@/components/SyncUser";
+import { BottomNav } from "@/components/BottomNav";
 import Link from "next/link";
 
 export function LayoutClient({ children }: { children: React.ReactNode }) {
@@ -22,14 +23,14 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const predictionsLocked = settings?.predictionsLocked ?? false;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-      <header className="flex flex-col md:flex-row justify-between items-center gap-4 sm:gap-6 mb-8 sm:mb-12 border-b border-white/5 pb-6 sm:pb-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6 md:py-8">
+      <header className="flex items-center justify-between gap-4 mb-6 sm:mb-8 md:mb-12 border-b border-white/5 pb-4 sm:pb-6 md:pb-8">
         <Link href="/">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black gradient-text tracking-tighter">QUINIELA 2026</h1>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black gradient-text tracking-tighter">QUINIELA 2026</h1>
         </Link>
 
-        <div className="flex flex-wrap items-center justify-center md:justify-end gap-4 sm:gap-6 md:gap-8 w-full md:w-auto">
-          <nav className="flex flex-wrap justify-center md:justify-start gap-4 sm:gap-6 font-medium text-gray-400 text-sm sm:text-base">
+        <div className="flex items-center gap-4 sm:gap-6 md:gap-8">
+          <nav className="hidden md:flex gap-6 font-medium text-gray-400">
             <Link href="/" className="hover:text-blue-400 transition-colors">
               Inicio
             </Link>
@@ -46,21 +47,24 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             )}
           </nav>
 
-            <div className="h-6 w-px bg-white/10 hidden md:block" />
+          <div className="hidden md:block h-6 w-px bg-white/10" />
 
-            <SignedIn>
-              <UserButton afterSignOutUrl="/" />
-            </SignedIn>
-            <SignedOut>
-              <SignInButton mode="modal">
-                <button className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-full font-bold text-sm transition-all shadow-lg shadow-blue-500/20">
-                  Ingresar
-                </button>
-              </SignInButton>
-            </SignedOut>
-          </div>
-        </header>
-        <main>{children}</main>
-      </div>
+          <SignedIn>
+            <UserButton afterSignOutUrl="/" />
+          </SignedIn>
+          <SignedOut>
+            <SignInButton mode="modal">
+              <button className="bg-blue-600 hover:bg-blue-500 text-white px-4 sm:px-5 py-2 rounded-full font-bold text-sm transition-all shadow-lg shadow-blue-500/20">
+                Ingresar
+              </button>
+            </SignInButton>
+          </SignedOut>
+        </div>
+      </header>
+
+      <main className="pb-20 md:pb-0">{children}</main>
+
+      <BottomNav />
+    </div>
   );
 }
