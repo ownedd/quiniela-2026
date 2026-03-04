@@ -163,14 +163,14 @@ export default function AdminResultsPage() {
       <div>
         <h3 className="font-bold mb-4">Resultados oficiales</h3>
         {groups.length > 0 && (
-          <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 mb-5">
-            <div className="flex gap-2 w-max">
+          <div className="overflow-x-auto md:overflow-visible scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 mb-5">
+            <div className="flex gap-2 flex-nowrap md:flex-wrap w-max md:w-full">
               {groups.map((group) => (
                 <button
                   key={group}
                   onClick={() => setActiveGroup(group)}
                   className={cn(
-                    "px-4 py-2 rounded-full font-bold text-sm transition-all whitespace-nowrap",
+                    "px-4 py-2 rounded-full font-bold text-sm transition-all whitespace-nowrap cursor-pointer",
                     activeGroup === group
                       ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
                       : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-300"
@@ -260,7 +260,7 @@ function AdminMatchCard({
         </div>
         <div className="flex items-center gap-1.5 text-xs text-gray-500">
           <Calendar className="w-3 h-3 shrink-0" />
-          {new Date(match.date).toLocaleDateString()}
+          {new Date(match.date).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
         </div>
       </div>
 

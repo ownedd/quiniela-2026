@@ -6,6 +6,13 @@ export const metadata: Metadata = {
   title: "Quiniela 2026",
   description: "Predice los resultados del Mundial 2026 y compite con tus amigos.",
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -34,7 +41,6 @@ export default function RootLayout({
         <meta name="theme-color" content="#0f172a" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="msapplication-navbutton-color" content="#0f172a" />
-        <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="antialiased">
         <LayoutClient>{children}</LayoutClient>

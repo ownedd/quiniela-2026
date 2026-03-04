@@ -70,7 +70,7 @@ export default function Predictions() {
                   key={u._id}
                   onClick={() => setSelectedUserId(u._id)}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-xl font-medium transition-all text-sm",
+                    "flex items-center gap-2 px-3 py-2 rounded-xl font-medium transition-all text-sm cursor-pointer",
                     selectedUserId === u._id
                       ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
                       : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-300"
@@ -163,14 +163,14 @@ function GroupTabs({
 }) {
   if (groups.length === 0) return null;
   return (
-    <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
-      <div className="flex gap-2 w-max">
+    <div className="overflow-x-auto md:overflow-visible scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
+      <div className="flex gap-2 flex-nowrap md:flex-wrap w-max md:w-full">
         {groups.map((group) => (
           <button
             key={group}
             onClick={() => onChange(group)}
             className={cn(
-              "px-4 py-2 rounded-full font-bold text-sm transition-all whitespace-nowrap",
+              "px-4 py-2 rounded-full font-bold text-sm transition-all whitespace-nowrap cursor-pointer",
               activeGroup === group
                 ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
                 : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-300"
@@ -198,7 +198,7 @@ function MatchCardReadOnly({ match, prediction }: { match: any; prediction?: any
         </span>
         <div className="flex items-center gap-1.5 text-xs text-gray-500">
           <Calendar className="w-3 h-3 shrink-0" />
-          {new Date(match.date).toLocaleDateString()}
+          {new Date(match.date).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
         </div>
       </div>
 
@@ -265,7 +265,7 @@ function MatchCard({ match, prediction, onSave, isSaving, locked }: any) {
         </span>
         <div className="flex items-center gap-1.5 text-xs text-gray-500">
           <Calendar className="w-3 h-3 shrink-0" />
-          {new Date(match.date).toLocaleDateString()}
+          {new Date(match.date).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
         </div>
       </div>
 
@@ -341,12 +341,15 @@ function MatchCard({ match, prediction, onSave, isSaving, locked }: any) {
           </div>
         ) : (
           <button
-            onClick={() => onSave(match._id, Number(homeScore), Number(awayScore))}
+            onClick={() => {
+              const canSave = !locked && hasChanged && !isSaving && homeScore !== "" && awayScore !== "";
+              if (canSave) onSave(match._id, Number(homeScore), Number(awayScore));
+            }}
             disabled={locked || !hasChanged || isSaving || homeScore === "" || awayScore === ""}
             className={cn(
               "w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all text-sm",
-              hasChanged && !isSaving && "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20",
-              !hasChanged && "bg-white/5 text-gray-500 cursor-not-allowed",
+              hasChanged && homeScore !== "" && awayScore !== "" && !isSaving && "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 cursor-pointer",
+              (!hasChanged || homeScore === "" || awayScore === "") && "bg-white/5 text-gray-500 cursor-not-allowed",
               isSaving && "bg-blue-600/50 text-white cursor-wait"
             )}
           >
