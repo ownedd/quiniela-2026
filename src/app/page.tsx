@@ -6,12 +6,22 @@ import { Trophy, Medal, User, Loader2, CheckCircle2, Shield } from "lucide-react
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { useUser } from "@clerk/nextjs";
 
 export default function Home() {
+  const { isLoaded, user } = useUser();
   const users = useQuery(api.users.leaderboard);
+  const settings = useQuery(api.tournamentSettings.get);
+  const matchesByGroup = useQuery(api.matches.byGroup) ?? {};
+  const userPredictions = useQuery(api.predictions.getMine, isLoaded && user ? {} : "skip") ?? [];
   const [showAll, setShowAll] = useState(false);
 
   const displayedUsers = showAll ? users : users?.slice(0, 3);
+
+  const totalMatches = Object.values(matchesByGroup).reduce((acc, group) => acc + group.length, 0);
+  const completedPredictions = userPredictions.length;
+  const missingPredictions = totalMatches - completedPredictions;
+  const predictionsLocked = settings?.predictionsLocked ?? false;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
@@ -45,14 +55,14 @@ export default function Home() {
 
                 <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/10 shrink-0 flex items-center justify-center bg-white/5">
                   {user.image ? (
-                    <Image src={user.image} alt={user.displayName?.trim() || user.name} width={40} height={40} className="object-cover w-full h-full" />
+                    <Image src={user.image} alt={user.displayName ?? ""} width={40} height={40} className="object-cover w-full h-full" />
                   ) : (
                     <User className="w-5 h-5 text-gray-400" />
                   )}
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">{user.displayName?.trim() || user.name}</p>
+                  <p className="font-semibold text-sm truncate">{user.displayName ?? "Participante"}</p>
                 </div>
 
                 <span className="bg-blue-500/10 text-blue-400 px-3 py-1 rounded-full text-xs sm:text-sm font-bold border border-blue-500/20 whitespace-nowrap shrink-0">
@@ -112,24 +122,33 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Proximos Pasos - Banner CTA */}
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600/20 via-blue-900/30 to-purple-900/20 border border-blue-500/20 p-5 sm:p-6">
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-3">
-            <Shield className="w-6 h-6 text-blue-400 shrink-0" />
-            <h3 className="font-bold text-lg">Proximos Pasos</h3>
+      {/* Proximos Pasos - Banner CTA (oculto si predicciones bloqueadas) */}
+      {!predictionsLocked && (
+        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600/20 via-blue-900/30 to-purple-900/20 border border-blue-500/20 p-5 sm:p-6">
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-3">
+              <Shield className="w-6 h-6 text-blue-400 shrink-0" />
+              <h3 className="font-bold text-lg">Proximos Pasos</h3>
+            </div>
+            <p className="text-sm text-gray-300 mb-4 leading-relaxed">
+              {missingPredictions > 0 ? (
+                <>
+                  Te falta{missingPredictions > 1 ? "n" : ""} <span className="text-white font-semibold">{missingPredictions}</span> prediccion
+                  {missingPredictions > 1 ? "es" : ""} por llenar.
+                </>
+              ) : (
+                <>Listo. Puedes cambiar tus predicciones hasta el comienzo del mundial.</>
+              )}
+            </p>
+            <Link
+              href="/predictions"
+              className="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20 text-sm"
+            >
+              {missingPredictions > 0 ? "Comenzar Predicciones" : "Ver Mis Predicciones"}
+            </Link>
           </div>
-          <p className="text-sm text-gray-300 mb-4 leading-relaxed">
-            Ve a la seccion de <span className="text-white font-semibold">Mis Predicciones</span> para completar tu quiniela antes del pitazo inicial.
-          </p>
-          <Link
-            href="/predictions"
-            className="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20 text-sm"
-          >
-            Comenzar Predicciones
-          </Link>
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   );
 }

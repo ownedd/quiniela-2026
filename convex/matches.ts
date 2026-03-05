@@ -112,18 +112,37 @@ async function requireAdmin(ctx: MutationCtx) {
 export const setResult = mutation({
   args: {
     matchId: v.id("matches"),
-    homeScore: v.number(),
-    awayScore: v.number(),
+    homeScore: v.optional(v.number()),
+    awayScore: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
     const match = await ctx.db.get(args.matchId);
     if (!match) throw new Error("Partido no encontrado");
-    await ctx.db.patch(args.matchId, {
-      homeScore: args.homeScore,
-      awayScore: args.awayScore,
-      status: "finished",
-    });
+
+    const hasHome = args.homeScore !== undefined && args.homeScore !== null;
+    const hasAway = args.awayScore !== undefined && args.awayScore !== null;
+
+    if (hasHome !== hasAway) {
+      throw new Error("Resultado incompleto: debes indicar ambos marcadores o dejar ambos vacios para limpiar");
+    }
+
+    if (hasHome && hasAway) {
+      const h = args.homeScore!;
+      const a = args.awayScore!;
+      if (h < 0 || a < 0) throw new Error("Los marcadores no pueden ser negativos");
+      await ctx.db.patch(args.matchId, {
+        homeScore: h,
+        awayScore: a,
+        status: "finished",
+      });
+    } else {
+      await ctx.db.patch(args.matchId, {
+        homeScore: undefined,
+        awayScore: undefined,
+        status: "scheduled",
+      });
+    }
     await recalculateLeaderboardInMutation(ctx);
   },
 });

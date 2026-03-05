@@ -13,7 +13,6 @@ export function SyncUser() {
   useEffect(() => {
     // Solo sincronizar si Clerk cargó, hay usuario, y Convex ya validó la autenticación
     if (clerkLoaded && user && isAuthenticated) {
-      console.log("Convex autenticado. Sincronizando usuario...");
       storeUser();
     }
   }, [clerkLoaded, user, isAuthenticated, storeUser]);

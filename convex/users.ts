@@ -9,8 +9,6 @@ export const store = mutation({
       throw new Error("Sin autenticación");
     }
 
-    console.log("Sincronizando usuario:", identity.subject, identity.name, identity.email);
-
     // Check if we've already stored this user.
     const user = await ctx.db
       .query("users")
@@ -103,7 +101,13 @@ export const setAdmin = mutation({
 export const leaderboard = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query("users").withIndex("by_score").order("desc").collect();
+    const users = await ctx.db.query("users").withIndex("by_score").order("desc").collect();
+    return users.map((u) => ({
+      _id: u._id,
+      displayName: u.displayName ?? u.name,
+      image: u.image,
+      score: u.score,
+    }));
   },
 });
 

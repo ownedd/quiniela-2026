@@ -6,11 +6,13 @@ import { api } from "../../convex/_generated/api";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import { SyncUser } from "@/components/SyncUser";
 import { BottomNav } from "@/components/BottomNav";
+import { PwaRegister } from "@/components/PwaRegister";
 import Link from "next/link";
 
 export function LayoutClient({ children }: { children: React.ReactNode }) {
   return (
     <ConvexClientProvider>
+      <PwaRegister />
       <SyncUser />
       <LayoutContent>{children}</LayoutContent>
     </ConvexClientProvider>

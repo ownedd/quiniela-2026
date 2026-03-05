@@ -31,8 +31,9 @@ export async function recalculateLeaderboardInMutation(ctx: MutationCtx) {
   }
 
   for (const match of finishedMatches) {
-    const homeScore = match.homeScore ?? 0;
-    const awayScore = match.awayScore ?? 0;
+    const homeScore = match.homeScore;
+    const awayScore = match.awayScore;
+    if (homeScore === undefined || awayScore === undefined) continue;
     const matchPreds = predictions.filter((p) => p.matchId === match._id);
     for (const p of matchPreds) {
       const pts = calculatePoints(

@@ -6,6 +6,12 @@ export const metadata: Metadata = {
   title: "Quiniela 2026",
   description: "Predice los resultados del Mundial 2026 y compite con tus amigos.",
   manifest: "/manifest.json",
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: { index: false, follow: false, noimageindex: true },
+  },
   icons: {
     icon: [
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },

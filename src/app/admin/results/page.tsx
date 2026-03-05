@@ -29,12 +29,26 @@ export default function AdminResultsPage() {
     if (groups.length > 0 && !activeGroup) setActiveGroup(groups[0]);
   }, [groups, activeGroup]);
 
-  const handleSetResult = async (matchId: string, homeScore: number, awayScore: number) => {
+  const handleSetResult = async (
+    matchId: string,
+    homeScore: number | undefined,
+    awayScore: number | undefined
+  ) => {
     setSavingMatch(matchId);
     setMessage(null);
     try {
-      await setResult({ matchId: matchId as any, homeScore, awayScore });
-      setMessage({ type: "success", text: "Resultado guardado. La tabla se actualizara automaticamente." });
+      await setResult({
+        matchId: matchId as any,
+        homeScore: homeScore !== undefined ? homeScore : undefined,
+        awayScore: awayScore !== undefined ? awayScore : undefined,
+      });
+      setMessage({
+        type: "success",
+        text:
+          homeScore !== undefined && awayScore !== undefined
+            ? "Resultado guardado. La tabla se actualizara automaticamente."
+            : "Resultado limpiado. El partido queda como no jugado.",
+      });
     } catch (err) {
       setMessage({ type: "error", text: err instanceof Error ? err.message : "Error al guardar" });
     }
@@ -211,7 +225,7 @@ function AdminMatchCard({
   isSaving,
 }: {
   match: any;
-  onSave: (matchId: string, homeScore: number, awayScore: number) => void;
+  onSave: (matchId: string, homeScore: number | undefined, awayScore: number | undefined) => void;
   isSaving: boolean;
 }) {
   const [homeScore, setHomeScore] = useState<string>(
@@ -228,14 +242,17 @@ function AdminMatchCard({
   const isFinished = match.status === "finished";
   const hasChanged =
     (match.homeScore ?? "") !== homeScore || (match.awayScore ?? "") !== awayScore;
-  const canSave =
-    hasChanged &&
+  const bothFilled =
     homeScore !== "" &&
     awayScore !== "" &&
     !isNaN(Number(homeScore)) &&
     !isNaN(Number(awayScore)) &&
     Number(homeScore) >= 0 &&
     Number(awayScore) >= 0;
+  const bothEmpty = homeScore === "" && awayScore === "";
+  const canSave =
+    hasChanged &&
+    (bothFilled || (bothEmpty && isFinished));
 
   const inputClass =
     "w-10 h-10 sm:w-12 sm:h-12 bg-white/5 border border-white/10 rounded-xl text-center text-lg sm:text-xl font-bold focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
@@ -326,7 +343,13 @@ function AdminMatchCard({
 
       <div className="mt-4">
         <button
-          onClick={() => onSave(match._id, Number(homeScore), Number(awayScore))}
+          onClick={() =>
+            onSave(
+              match._id,
+              bothEmpty ? undefined : Number(homeScore),
+              bothEmpty ? undefined : Number(awayScore)
+            )
+          }
           disabled={!canSave || isSaving}
           className={cn(
             "w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all text-sm",
@@ -340,7 +363,7 @@ function AdminMatchCard({
           ) : (
             <>
               <Save className="w-4 h-4" />
-              <span>Guardar resultado</span>
+              <span>{bothEmpty && isFinished ? "Limpiar resultado" : "Guardar resultado"}</span>
             </>
           )}
         </button>

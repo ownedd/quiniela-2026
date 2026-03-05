@@ -83,7 +83,7 @@ export default function Predictions() {
                       <User className="w-3 h-3 text-gray-400" />
                     </div>
                   )}
-                  <span className="truncate max-w-[100px]">{u.displayName?.trim() || u.name}</span>
+                  <span className="truncate max-w-[100px]">{u.displayName ?? "Participante"}</span>
                   <span className="text-xs opacity-75">({u.score} pts)</span>
                 </button>
               ))}
