@@ -42,5 +42,7 @@ export default defineSchema({
     matchId: v.id("matches"),
     homeScore: v.number(),
     awayScore: v.number(),
-  }).index("by_user_match", ["userId", "matchId"]),
+  })
+    .index("by_user_match", ["userId", "matchId"])
+    .index("by_matchId", ["matchId"]),
 });

@@ -1,51 +1,55 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import type { MutationCtx } from "./_generated/server";
-import { recalculateLeaderboardInMutation } from "./scoring";
+import { updateScoresForMatch } from "./scoring";
 import { teams, matches } from "./seedData";
 import { Id } from "./_generated/dataModel";
 
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    const matches = await ctx.db.query("matches").order("asc").collect();
-    const results = [];
-    for (const match of matches) {
-      const homeTeam = await ctx.db.get(match.homeTeam);
-      const awayTeam = await ctx.db.get(match.awayTeam);
-      results.push({
+    const [allMatches, allTeams] = await Promise.all([
+      ctx.db.query("matches").order("asc").collect(),
+      ctx.db.query("teams").collect(),
+    ]);
+    const teamMap = new Map(allTeams.map((t) => [t._id, t]));
+    return allMatches.map((match) => {
+      const homeTeam = teamMap.get(match.homeTeam);
+      const awayTeam = teamMap.get(match.awayTeam);
+      return {
         ...match,
         homeTeamDetails: homeTeam ? { name: homeTeam.name, code: homeTeam.code, flagUrl: homeTeam.flagUrl } : null,
         awayTeamDetails: awayTeam ? { name: awayTeam.name, code: awayTeam.code, flagUrl: awayTeam.flagUrl } : null,
-      });
-    }
-    return results;
+      };
+    });
   },
 });
 
 export const byGroup = query({
   args: {},
   handler: async (ctx) => {
-    const allMatches = await ctx.db.query("matches").collect();
-    const populated = [];
-    for (const match of allMatches) {
-      const homeTeam = await ctx.db.get(match.homeTeam);
-      const awayTeam = await ctx.db.get(match.awayTeam);
-      populated.push({
-        ...match,
-        homeTeamDetails: homeTeam ? { name: homeTeam.name, code: homeTeam.code, flagUrl: homeTeam.flagUrl } : null,
-        awayTeamDetails: awayTeam ? { name: awayTeam.name, code: awayTeam.code, flagUrl: awayTeam.flagUrl } : null,
-      });
-    }
+    const allTeams = await ctx.db.query("teams").collect();
+    const teamMap = new Map(allTeams.map((t) => [t._id, t]));
+    const groups = [...new Set(allTeams.map((t) => t.group))].sort();
 
     const grouped: Record<string, any[]> = {};
-    for (const match of populated) {
-      if (!grouped[match.group]) {
-        grouped[match.group] = [];
-      }
-      grouped[match.group].push(match);
+    for (const group of groups) {
+      const matchesInGroup = await ctx.db
+        .query("matches")
+        .withIndex("by_group", (q) => q.eq("group", group))
+        .collect();
+      const populated = matchesInGroup.map((match) => {
+        const homeTeam = teamMap.get(match.homeTeam);
+        const awayTeam = teamMap.get(match.awayTeam);
+        return {
+          ...match,
+          homeTeamDetails: homeTeam ? { name: homeTeam.name, code: homeTeam.code, flagUrl: homeTeam.flagUrl } : null,
+          awayTeamDetails: awayTeam ? { name: awayTeam.name, code: awayTeam.code, flagUrl: awayTeam.flagUrl } : null,
+        };
+      });
+      grouped[group] = populated;
     }
-    
+
     return grouped;
   },
 });
@@ -127,6 +131,10 @@ export const setResult = mutation({
       throw new Error("Resultado incompleto: debes indicar ambos marcadores o dejar ambos vacios para limpiar");
     }
 
+    const oldHome = match.homeScore;
+    const oldAway = match.awayScore;
+    const oldStatus = match.status;
+
     if (hasHome && hasAway) {
       const h = args.homeScore!;
       const a = args.awayScore!;
@@ -136,13 +144,14 @@ export const setResult = mutation({
         awayScore: a,
         status: "finished",
       });
+      await updateScoresForMatch(ctx, args.matchId, oldHome, oldAway, oldStatus, h, a, "finished");
     } else {
       await ctx.db.patch(args.matchId, {
         homeScore: undefined,
         awayScore: undefined,
         status: "scheduled",
       });
+      await updateScoresForMatch(ctx, args.matchId, oldHome, oldAway, oldStatus, undefined, undefined, "scheduled");
     }
-    await recalculateLeaderboardInMutation(ctx);
   },
 });

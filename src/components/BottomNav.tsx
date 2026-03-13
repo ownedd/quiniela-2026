@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
 import { Trophy, BarChart3, User, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLayoutContext } from "@/components/LayoutClient";
 
 const baseTabs = [
   { href: "/#ranking", label: "Posiciones", icon: BarChart3 },
@@ -15,7 +14,7 @@ const baseTabs = [
 
 export function BottomNav() {
   const pathname = usePathname();
-  const isAdmin = useQuery(api.users.isAdmin) ?? false;
+  const { isAdmin } = useLayoutContext();
 
   const adminTab = { href: "/admin/results", label: "Admin", icon: ShieldCheck };
   const tabs = isAdmin ? [...baseTabs, adminTab] : baseTabs;

@@ -1,5 +1,6 @@
 import { internalMutation } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 
 function calculatePoints(
   predHome: number,
@@ -17,6 +18,40 @@ function calculatePoints(
   if (predWinner === realWinner) return 1;
 
   return 0;
+}
+
+/**
+ * Actualización incremental: solo recalcula puntajes de usuarios que predijeron
+ * este partido, aplicando el delta entre el resultado anterior y el nuevo.
+ */
+export async function updateScoresForMatch(
+  ctx: MutationCtx,
+  matchId: Id<"matches">,
+  oldHome: number | undefined,
+  oldAway: number | undefined,
+  oldStatus: string,
+  newHome: number | undefined,
+  newAway: number | undefined,
+  newStatus: string
+) {
+  const matchPreds = await ctx.db
+    .query("predictions")
+    .withIndex("by_matchId", (q) => q.eq("matchId", matchId))
+    .collect();
+
+  const oldFinished = oldStatus === "finished" && oldHome !== undefined && oldAway !== undefined;
+  const newFinished = newStatus === "finished" && newHome !== undefined && newAway !== undefined;
+
+  for (const p of matchPreds) {
+    const oldPts = oldFinished ? calculatePoints(p.homeScore, p.awayScore, oldHome, oldAway) : 0;
+    const newPts = newFinished ? calculatePoints(p.homeScore, p.awayScore, newHome!, newAway!) : 0;
+    const delta = newPts - oldPts;
+    if (delta === 0) continue;
+
+    const user = await ctx.db.get(p.userId);
+    if (!user) continue;
+    await ctx.db.patch(p.userId, { score: user.score + delta });
+  }
 }
 
 export async function recalculateLeaderboardInMutation(ctx: MutationCtx) {

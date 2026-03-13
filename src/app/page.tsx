@@ -55,7 +55,7 @@ export default function Home() {
 
                 <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/10 shrink-0 flex items-center justify-center bg-white/5">
                   {user.image ? (
-                    <Image src={user.image} alt={user.displayName ?? ""} width={40} height={40} className="object-cover w-full h-full" />
+                    <Image src={user.image} alt={user.displayName ?? ""} width={40} height={40} className="object-cover w-full h-full" unoptimized />
                   ) : (
                     <User className="w-5 h-5 text-gray-400" />
                   )}

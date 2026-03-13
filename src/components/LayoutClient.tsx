@@ -1,5 +1,6 @@
 "use client";
 
+import { createContext, useContext } from "react";
 import { UserButton, SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -8,6 +9,20 @@ import { SyncUser } from "@/components/SyncUser";
 import { BottomNav } from "@/components/BottomNav";
 import { PwaRegister } from "@/components/PwaRegister";
 import Link from "next/link";
+
+type LayoutContextValue = {
+  isAdmin: boolean | undefined;
+  predictionsLocked: boolean;
+};
+
+const LayoutContext = createContext<LayoutContextValue>({
+  isAdmin: undefined,
+  predictionsLocked: false,
+});
+
+export function useLayoutContext() {
+  return useContext(LayoutContext);
+}
 
 export function LayoutClient({ children }: { children: React.ReactNode }) {
   return (
@@ -25,8 +40,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const predictionsLocked = settings?.predictionsLocked ?? false;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6 md:py-8">
-      <header className="flex items-center justify-between gap-4 mb-6 sm:mb-8 md:mb-12 border-b border-white/5 pb-4 sm:pb-6 md:pb-8">
+    <LayoutContext.Provider value={{ isAdmin, predictionsLocked }}>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6 md:py-8">
+        <header className="flex items-center justify-between gap-4 mb-6 sm:mb-8 md:mb-12 border-b border-white/5 pb-4 sm:pb-6 md:pb-8">
         <Link href="/">
           <h1 className="text-xl sm:text-2xl md:text-3xl font-black gradient-text tracking-tighter">QUINIELA 2026</h1>
         </Link>
@@ -62,11 +78,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             </SignInButton>
           </SignedOut>
         </div>
-      </header>
+        </header>
 
-      <main className="pb-20 md:pb-0">{children}</main>
+        <main className="pb-20 md:pb-0">{children}</main>
 
-      <BottomNav />
-    </div>
+        <BottomNav />
+      </div>
+    </LayoutContext.Provider>
   );
 }
