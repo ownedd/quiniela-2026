@@ -80,7 +80,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         </div>
         </header>
 
-        <main className="pb-20 md:pb-0">{children}</main>
+        <main className="pb-24 md:pb-0">{children}</main>
 
         <BottomNav />
       </div>
