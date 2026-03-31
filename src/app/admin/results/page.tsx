@@ -8,6 +8,37 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
+import type { Id } from "../../../../convex/_generated/dataModel";
+
+type AdminMatchDetails = {
+  name: string;
+  flagUrl?: string | null;
+};
+
+type AdminMatchView = {
+  _id: Id<"matches">;
+  group: string;
+  date: string;
+  status: string;
+  homeScore?: number;
+  awayScore?: number;
+  homeTeamDetails?: AdminMatchDetails | null;
+  awayTeamDetails?: AdminMatchDetails | null;
+};
+
+function LocalDateTime({
+  value,
+  options,
+}: {
+  value: string;
+  options?: Intl.DateTimeFormatOptions;
+}) {
+  return (
+    <time dateTime={value} suppressHydrationWarning>
+      {new Date(value).toLocaleString("es-MX", options)}
+    </time>
+  );
+}
 
 export default function AdminResultsPage() {
   const { user, isLoaded } = useUser();
@@ -15,10 +46,10 @@ export default function AdminResultsPage() {
   const canBootstrap = useQuery(api.users.canBootstrapAdmin, isLoaded && user ? {} : "skip");
   const bootstrapAsFirstAdmin = useMutation(api.users.bootstrapAsFirstAdmin);
   const settings = useQuery(api.tournamentSettings.get);
-  const matchesByGroup = useQuery(api.matches.byGroup) ?? {};
+  const matchesByGroup = (useQuery(api.matches.byGroup) ?? {}) as Record<string, AdminMatchView[]>;
   const setPredictionsLocked = useMutation(api.tournamentSettings.setPredictionsLocked);
   const setResult = useMutation(api.matches.setResult);
-  const [savingMatch, setSavingMatch] = useState<string | null>(null);
+  const [savingMatch, setSavingMatch] = useState<Id<"matches"> | null>(null);
   const [togglingLock, setTogglingLock] = useState(false);
   const [bootstrapping, setBootstrapping] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -30,7 +61,7 @@ export default function AdminResultsPage() {
   }, [groups, activeGroup]);
 
   const handleSetResult = async (
-    matchId: string,
+    matchId: Id<"matches">,
     homeScore: number | undefined,
     awayScore: number | undefined
   ) => {
@@ -38,7 +69,7 @@ export default function AdminResultsPage() {
     setMessage(null);
     try {
       await setResult({
-        matchId: matchId as any,
+        matchId,
         homeScore: homeScore !== undefined ? homeScore : undefined,
         awayScore: awayScore !== undefined ? awayScore : undefined,
       });
@@ -63,7 +94,9 @@ export default function AdminResultsPage() {
       await setPredictionsLocked({ locked: newLocked });
       setMessage({
         type: "success",
-        text: newLocked ? "Predicciones bloqueadas" : "Predicciones desbloqueadas",
+        text: newLocked
+          ? "Predicciones bloqueadas. Generando quinielas.xlsx..."
+          : "Predicciones desbloqueadas y exportación limpiada.",
       });
     } catch (err) {
       setMessage({ type: "error", text: err instanceof Error ? err.message : "Error" });
@@ -126,6 +159,9 @@ export default function AdminResultsPage() {
   }
 
   const locked = settings?.predictionsLocked ?? false;
+  const exportStatus = settings?.predictionsExportStatus;
+  const isGeneratingExport = locked && exportStatus === "generating";
+  const exportGeneratedAt = settings?.predictionsExportGeneratedAt ?? null;
 
   return (
     <div className="space-y-5 animate-slide-up">
@@ -168,6 +204,34 @@ export default function AdminResultsPage() {
             )}
           </button>
         </div>
+        {locked && (
+          <div className="mt-4 text-sm">
+            {isGeneratingExport && (
+              <div className="flex items-center gap-2 text-gold">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Generando quinielas.xlsx con las predicciones registradas...</span>
+              </div>
+            )}
+            {exportStatus === "ready" && (
+              <p className="text-green">
+                quinielas.xlsx listo para descarga
+                {exportGeneratedAt ? (
+                  <>
+                    {" "}desde{" "}
+                    <LocalDateTime value={exportGeneratedAt} />
+                  </>
+                ) : null}
+                .
+              </p>
+            )}
+            {exportStatus === "error" && (
+              <p className="text-red-400">
+                No se pudo generar quinielas.xlsx
+                {settings?.predictionsExportError ? `: ${settings.predictionsExportError}` : "."}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {message && (
@@ -200,7 +264,7 @@ export default function AdminResultsPage() {
         )}
         <div className="grid gap-4 stagger-children">
           {(activeGroup ?? groups[0]) && matchesByGroup[activeGroup ?? groups[0]]?.length > 0 ? (
-            matchesByGroup[activeGroup ?? groups[0]].map((match: { _id: string }) => (
+            matchesByGroup[activeGroup ?? groups[0]].map((match) => (
               <AdminMatchCard
                 key={match._id}
                 match={match}
@@ -226,8 +290,8 @@ function AdminMatchCard({
   onSave,
   isSaving,
 }: {
-  match: any;
-  onSave: (matchId: string, homeScore: number | undefined, awayScore: number | undefined) => void;
+  match: AdminMatchView;
+  onSave: (matchId: Id<"matches">, homeScore: number | undefined, awayScore: number | undefined) => void;
   isSaving: boolean;
 }) {
   const [homeScore, setHomeScore] = useState<string>(
@@ -279,7 +343,10 @@ function AdminMatchCard({
         </div>
         <div className="flex items-center gap-1.5 text-xs text-gray-500">
           <Calendar className="w-3 h-3 shrink-0" />
-          {new Date(match.date).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+          <LocalDateTime
+            value={match.date}
+            options={{ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }}
+          />
         </div>
       </div>
 

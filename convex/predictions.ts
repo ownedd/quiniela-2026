@@ -1,4 +1,4 @@
-import { internalMutation, mutation, query } from "./_generated/server";
+import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { recalculateLeaderboardInMutation } from "./scoring";
 
@@ -42,6 +42,48 @@ export const getMine = query({
       .query("predictions")
       .withIndex("by_user_match", (q) => q.eq("userId", user._id))
       .collect();
+  },
+});
+
+export const getAllForExport = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const [users, predictions, matches, teams] = await Promise.all([
+      ctx.db.query("users").withIndex("by_score").order("desc").collect(),
+      ctx.db.query("predictions").collect(),
+      ctx.db.query("matches").order("asc").collect(),
+      ctx.db.query("teams").collect(),
+    ]);
+
+    const teamMap = new Map(teams.map((team) => [team._id, team]));
+    const enrichedMatches = matches
+      .map((match) => ({
+        _id: match._id,
+        group: match.group,
+        date: match.date,
+        homeTeam: teamMap.get(match.homeTeam)?.name ?? "TBD",
+        awayTeam: teamMap.get(match.awayTeam)?.name ?? "TBD",
+      }))
+      .sort((a, b) => {
+        const groupCompare = a.group.localeCompare(b.group);
+        if (groupCompare !== 0) return groupCompare;
+        return a.date.localeCompare(b.date);
+      });
+
+    return {
+      users: users.map((user) => ({
+        _id: user._id,
+        displayName: user.displayName ?? user.name,
+        score: user.score,
+      })),
+      matches: enrichedMatches,
+      predictions: predictions.map((prediction) => ({
+        userId: prediction.userId,
+        matchId: prediction.matchId,
+        homeScore: prediction.homeScore,
+        awayScore: prediction.awayScore,
+      })),
+    };
   },
 });
 

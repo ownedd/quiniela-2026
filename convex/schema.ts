@@ -16,6 +16,15 @@ export default defineSchema({
     predictionsLocked: v.boolean(),
     lockedAt: v.optional(v.string()),
     updatedBy: v.optional(v.id("users")),
+    predictionsExportStorageId: v.optional(v.id("_storage")),
+    predictionsExportFilename: v.optional(v.string()),
+    predictionsExportGeneratedAt: v.optional(v.string()),
+    predictionsExportStatus: v.optional(
+      v.union(v.literal("generating"), v.literal("ready"), v.literal("error"))
+    ),
+    predictionsExportError: v.optional(v.string()),
+    predictionsExportToken: v.optional(v.string()),
+    predictionsExportScheduledId: v.optional(v.id("_scheduled_functions")),
   }),
 
   teams: defineTable({

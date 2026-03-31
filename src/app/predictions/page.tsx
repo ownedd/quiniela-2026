@@ -2,36 +2,83 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Save, Calendar, Loader2, User, CheckCircle2 } from "lucide-react";
+import { Save, Calendar, Loader2, User, CheckCircle2, Download } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
 import type { Id } from "../../../convex/_generated/dataModel";
 
+type MatchPrediction = {
+  matchId: Id<"matches">;
+  homeScore: number;
+  awayScore: number;
+};
+
+type MatchDetails = {
+  name: string;
+  flagUrl?: string | null;
+};
+
+type MatchView = {
+  _id: Id<"matches">;
+  group: string;
+  date: string;
+  homeTeam: Id<"teams"> | string;
+  awayTeam: Id<"teams"> | string;
+  homeTeamDetails?: MatchDetails | null;
+  awayTeamDetails?: MatchDetails | null;
+};
+
+type LeaderboardUser = {
+  _id: Id<"users">;
+  displayName?: string;
+  image?: string | null;
+  score: number;
+};
+
+function LocalDateTime({
+  value,
+  options,
+}: {
+  value: string;
+  options?: Intl.DateTimeFormatOptions;
+}) {
+  return (
+    <time dateTime={value} suppressHydrationWarning>
+      {new Date(value).toLocaleString("es-MX", options)}
+    </time>
+  );
+}
+
 export default function Predictions() {
   const { user, isLoaded } = useUser();
-  const matchesByGroup = useQuery(api.matches.byGroup) || {};
+  const matchesByGroup = (useQuery(api.matches.byGroup) ?? {}) as Record<string, MatchView[]>;
   const settings = useQuery(api.tournamentSettings.get);
-  const leaderboard = useQuery(api.users.leaderboard) ?? [];
+  const leaderboard = (useQuery(api.users.leaderboard) ?? []) as LeaderboardUser[];
   const submitPrediction = useMutation(api.predictions.submit);
-  const userPredictions = useQuery(api.predictions.getMine, isLoaded && user ? {} : "skip") || [];
+  const userPredictions = (
+    useQuery(api.predictions.getMine, isLoaded && user ? {} : "skip") ?? []
+  ) as MatchPrediction[];
   const [saving, setSaving] = useState<string | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<Id<"users"> | null>(null);
   const groups = Object.keys(matchesByGroup).sort();
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
+  const currentGroup = activeGroup ?? groups[0] ?? null;
 
   const predictionsLocked = settings?.predictionsLocked ?? false;
-  const selectedUserPredictions = useQuery(
-    api.predictions.getByUserId,
-    predictionsLocked && selectedUserId ? { userId: selectedUserId } : "skip"
-  ) ?? [];
+  const predictionsExport = useQuery(
+    api.tournamentSettings.getPredictionsExport,
+    isLoaded && user && predictionsLocked ? {} : "skip"
+  );
+  const selectedUserPredictions = (
+    useQuery(
+      api.predictions.getByUserId,
+      predictionsLocked && selectedUserId ? { userId: selectedUserId } : "skip"
+    ) ?? []
+  ) as MatchPrediction[];
 
-  useEffect(() => {
-    if (groups.length > 0 && !activeGroup) setActiveGroup(groups[0]);
-  }, [groups, activeGroup]);
-
-  const handleSave = async (matchId: any, homeScore: number, awayScore: number) => {
+  const handleSave = async (matchId: Id<"matches">, homeScore: number, awayScore: number) => {
     setSaving(matchId);
     try {
       await submitPrediction({ matchId, homeScore, awayScore });
@@ -60,12 +107,44 @@ export default function Predictions() {
         </div>
 
         <div className="glass-card p-4 sm:p-5">
+          {predictionsExport?.status === "ready" && predictionsExport.url ? (
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <h3 className="font-bold font-display uppercase">Quinielas exportadas</h3>
+                <p className="text-sm text-gray-400 mt-1">
+                  Descarga el archivo consolidado con una hoja por participante.
+                </p>
+              </div>
+              <a
+                href="/api/predictions/export"
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold bg-gradient-to-r from-gold to-gold-dark text-[#0a0a0a] shadow-lg shadow-gold/20 text-sm"
+              >
+                <Download className="w-4 h-4" />
+                Descargar {predictionsExport.filename}
+              </a>
+            </div>
+          ) : predictionsExport?.status === "error" ? (
+            <div>
+              <h3 className="font-bold font-display uppercase text-red-400">Exportación no disponible</h3>
+              <p className="text-sm text-gray-400 mt-1">
+                {predictionsExport.error ?? "No se pudo generar quinielas.xlsx todavía."}
+              </p>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-gold text-sm">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Generando quinielas.xlsx. El enlace aparecerá aquí en cuanto esté listo.</span>
+            </div>
+          )}
+        </div>
+
+        <div className="glass-card p-4 sm:p-5">
           <label className="block text-xs font-medium text-gold/60 mb-3 uppercase tracking-wider font-display">Participante</label>
           {leaderboard.length === 0 ? (
             <p className="text-gray-500 italic text-sm">No hay participantes en la tabla.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {leaderboard.map((u: any) => (
+              {leaderboard.map((u) => (
                 <button
                   key={u._id}
                   onClick={() => setSelectedUserId(u._id)}
@@ -97,14 +176,14 @@ export default function Predictions() {
           </div>
         ) : (
           <>
-            <GroupTabs groups={groups} activeGroup={activeGroup} onChange={setActiveGroup} />
+            <GroupTabs groups={groups} activeGroup={currentGroup} onChange={setActiveGroup} />
             <div className="grid gap-4 stagger-children">
-              {(activeGroup ?? groups[0]) && matchesByGroup[activeGroup ?? groups[0]]?.length > 0 ? (
-                matchesByGroup[activeGroup ?? groups[0]].map((match: any) => (
+              {currentGroup && matchesByGroup[currentGroup]?.length > 0 ? (
+                matchesByGroup[currentGroup].map((match) => (
                   <MatchCardReadOnly
                     key={match._id}
                     match={match}
-                    prediction={selectedUserPredictions.find((p: any) => p.matchId === match._id)}
+                    prediction={selectedUserPredictions.find((prediction) => prediction.matchId === match._id)}
                   />
                 ))
               ) : (
@@ -126,15 +205,15 @@ export default function Predictions() {
         <p className="text-gray-400 text-sm mt-1">Define tus resultados antes del inicio del mundial</p>
       </div>
 
-      <GroupTabs groups={groups} activeGroup={activeGroup} onChange={setActiveGroup} />
+      <GroupTabs groups={groups} activeGroup={currentGroup} onChange={setActiveGroup} />
 
       <div className="grid gap-4 stagger-children">
-        {(activeGroup ?? groups[0]) && matchesByGroup[activeGroup ?? groups[0]]?.length > 0 ? (
-          matchesByGroup[activeGroup ?? groups[0]].map((match: any) => (
+        {currentGroup && matchesByGroup[currentGroup]?.length > 0 ? (
+          matchesByGroup[currentGroup].map((match) => (
             <MatchCard
               key={match._id}
               match={match}
-              prediction={userPredictions.find((p: any) => p.matchId === match._id)}
+              prediction={userPredictions.find((prediction) => prediction.matchId === match._id)}
               onSave={handleSave}
               isSaving={saving === match._id}
               locked={false}
@@ -184,7 +263,7 @@ function GroupTabs({
   );
 }
 
-function MatchCardReadOnly({ match, prediction }: { match: any; prediction?: any }) {
+function MatchCardReadOnly({ match, prediction }: { match: MatchView; prediction?: MatchPrediction }) {
   const homeName = match.homeTeamDetails?.name || "TBD";
   const awayName = match.awayTeamDetails?.name || "TBD";
   const homeFlagUrl = match.homeTeamDetails?.flagUrl;
@@ -198,7 +277,10 @@ function MatchCardReadOnly({ match, prediction }: { match: any; prediction?: any
         </span>
         <div className="flex items-center gap-1.5 text-xs text-gray-500">
           <Calendar className="w-3 h-3 shrink-0" />
-          {new Date(match.date).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+          <LocalDateTime
+            value={match.date}
+            options={{ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }}
+          />
         </div>
       </div>
 
@@ -239,9 +321,25 @@ function MatchCardReadOnly({ match, prediction }: { match: any; prediction?: any
   );
 }
 
-function MatchCard({ match, prediction, onSave, isSaving, locked }: any) {
-  const [homeScore, setHomeScore] = useState(prediction?.homeScore ?? "");
-  const [awayScore, setAwayScore] = useState(prediction?.awayScore ?? "");
+function MatchCard({
+  match,
+  prediction,
+  onSave,
+  isSaving,
+  locked,
+}: {
+  match: MatchView;
+  prediction?: MatchPrediction;
+  onSave: (matchId: Id<"matches">, homeScore: number, awayScore: number) => void;
+  isSaving: boolean;
+  locked: boolean;
+}) {
+  const [homeScore, setHomeScore] = useState<string>(
+    prediction?.homeScore !== undefined ? String(prediction.homeScore) : ""
+  );
+  const [awayScore, setAwayScore] = useState<string>(
+    prediction?.awayScore !== undefined ? String(prediction.awayScore) : ""
+  );
 
   const hasChanged = prediction?.homeScore !== Number(homeScore) || prediction?.awayScore !== Number(awayScore);
   const hasPrediction = prediction?.homeScore !== undefined && prediction?.awayScore !== undefined;
@@ -265,7 +363,10 @@ function MatchCard({ match, prediction, onSave, isSaving, locked }: any) {
         </span>
         <div className="flex items-center gap-1.5 text-xs text-gray-500">
           <Calendar className="w-3 h-3 shrink-0" />
-          {new Date(match.date).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+          <LocalDateTime
+            value={match.date}
+            options={{ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }}
+          />
         </div>
       </div>
 

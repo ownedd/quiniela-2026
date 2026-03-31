@@ -3,7 +3,12 @@ import { v } from "convex/values";
 import type { MutationCtx } from "./_generated/server";
 import { updateScoresForMatch } from "./scoring";
 import { teams, matches } from "./seedData";
-import { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
+
+type GroupedMatch = Doc<"matches"> & {
+  homeTeamDetails: { name: string; code: string; flagUrl?: string } | null;
+  awayTeamDetails: { name: string; code: string; flagUrl?: string } | null;
+};
 
 export const list = query({
   args: {},
@@ -32,7 +37,7 @@ export const byGroup = query({
     const teamMap = new Map(allTeams.map((t) => [t._id, t]));
     const groups = [...new Set(allTeams.map((t) => t.group))].sort();
 
-    const grouped: Record<string, any[]> = {};
+    const grouped: Record<string, GroupedMatch[]> = {};
     for (const group of groups) {
       const matchesInGroup = await ctx.db
         .query("matches")

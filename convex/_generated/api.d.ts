@@ -10,6 +10,7 @@
 
 import type * as matches from "../matches.js";
 import type * as predictions from "../predictions.js";
+import type * as predictionsExport from "../predictionsExport.js";
 import type * as scoring from "../scoring.js";
 import type * as seedData from "../seedData.js";
 import type * as teams from "../teams.js";
@@ -25,6 +26,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   matches: typeof matches;
   predictions: typeof predictions;
+  predictionsExport: typeof predictionsExport;
   scoring: typeof scoring;
   seedData: typeof seedData;
   teams: typeof teams;
