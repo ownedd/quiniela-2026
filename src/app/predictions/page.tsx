@@ -434,37 +434,39 @@ function MatchCard({
         </div>
       </div>
 
-      <div className="mt-4">
-        {justSaved ? (
-          <div className="flex items-center justify-center gap-2 py-2.5 text-green text-sm font-medium">
-            <CheckCircle2 className="w-4 h-4" />
-            Prediccion guardada correctamente
-          </div>
-        ) : (
-          <button
-            onClick={() => {
-              const canSave = !locked && hasChanged && !isSaving && homeScore !== "" && awayScore !== "";
-              if (canSave) onSave(match._id, Number(homeScore), Number(awayScore));
-            }}
-            disabled={locked || !hasChanged || isSaving || homeScore === "" || awayScore === ""}
-            className={cn(
-              "w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all text-sm cursor-pointer",
-              hasChanged && homeScore !== "" && awayScore !== "" && !isSaving && "btn-gold",
-              (!hasChanged || homeScore === "" || awayScore === "") && "bg-white/5 text-gray-500 cursor-not-allowed",
-              isSaving && "bg-gold/50 text-[#0a0a0a] cursor-wait"
-            )}
-          >
-            {isSaving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <>
-                <Save className="w-4 h-4" />
-                <span>{hasPrediction ? "Guardar" : "Guardar Prediccion"}</span>
-              </>
-            )}
-          </button>
-        )}
-      </div>
+      {(justSaved || hasChanged || !hasPrediction) && (
+        <div className="mt-4">
+          {justSaved ? (
+            <div className="flex items-center justify-center gap-2 py-2.5 text-green text-sm font-medium">
+              <CheckCircle2 className="w-4 h-4" />
+              Prediccion guardada correctamente
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                const canSave = !locked && hasChanged && !isSaving && homeScore !== "" && awayScore !== "";
+                if (canSave) onSave(match._id, Number(homeScore), Number(awayScore));
+              }}
+              disabled={locked || !hasChanged || isSaving || homeScore === "" || awayScore === ""}
+              className={cn(
+                "w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all text-sm cursor-pointer",
+                hasChanged && homeScore !== "" && awayScore !== "" && !isSaving && "btn-gold",
+                (!hasChanged || homeScore === "" || awayScore === "") && "bg-white/5 text-gray-500 cursor-not-allowed",
+                isSaving && "bg-gold/50 text-[#0a0a0a] cursor-wait"
+              )}
+            >
+              {isSaving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>{hasPrediction ? "Guardar" : "Guardar Prediccion"}</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
