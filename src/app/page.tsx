@@ -2,7 +2,7 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Trophy, Medal, User, Loader2, CheckCircle2, Shield } from "lucide-react";
+import { Trophy, Medal, User, Loader2, CheckCircle2, Shield, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -24,36 +24,51 @@ export default function Home() {
   const predictionsLocked = settings?.predictionsLocked ?? false;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-700">
+    <div className="space-y-6 animate-slide-up">
       {/* Leaderboard */}
-      <section className="glass-card p-4 sm:p-6">
+      <section className="glass-card-gold p-4 sm:p-6">
         <div className="flex items-center gap-3 mb-5">
-          <Trophy className="text-yellow-400 w-6 h-6 shrink-0" />
-          <h2 className="text-lg sm:text-xl font-bold">Tabla de Posiciones</h2>
+          <div className="p-2 rounded-lg bg-gold/10 animate-pulse-glow">
+            <Trophy className="text-gold w-5 h-5" />
+          </div>
+          <h2 className="text-lg sm:text-xl font-bold font-display uppercase tracking-wide">Tabla de Posiciones</h2>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2 stagger-children">
           {users === undefined ? (
             <div className="flex flex-col items-center gap-2 py-8">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+              <Loader2 className="w-8 h-8 animate-spin text-gold" />
               <p className="text-sm text-gray-500">Cargando participantes...</p>
             </div>
           ) : displayedUsers && displayedUsers.length > 0 ? (
             displayedUsers.map((user, index) => (
-              <div key={user._id} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors">
+              <div
+                key={user._id}
+                className={`flex items-center gap-3 p-3 rounded-xl transition-all hover-lift ${
+                  index === 0
+                    ? "bg-gold/[0.08] border border-gold/20"
+                    : index === 1
+                    ? "bg-white/[0.04] border border-white/5"
+                    : index === 2
+                    ? "bg-white/[0.03] border border-white/5"
+                    : "bg-white/[0.02] hover:bg-white/[0.04]"
+                }`}
+              >
                 <div className="flex items-center justify-center w-8 shrink-0">
                   {index === 0 ? (
-                    <Medal className="text-yellow-400 w-5 h-5" />
+                    <Medal className="text-gold w-6 h-6 drop-shadow-[0_0_6px_rgba(212,168,67,0.4)]" />
                   ) : index === 1 ? (
-                    <Medal className="text-gray-400 w-5 h-5" />
+                    <Medal className="text-gray-300 w-5 h-5" />
                   ) : index === 2 ? (
-                    <Medal className="text-amber-600 w-5 h-5" />
+                    <Medal className="text-amber-700 w-5 h-5" />
                   ) : (
-                    <span className="text-sm font-bold text-gray-500">{index + 1}</span>
+                    <span className="text-sm font-bold text-gray-500 font-display">{index + 1}</span>
                   )}
                 </div>
 
-                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/10 shrink-0 flex items-center justify-center bg-white/5">
+                <div className={`w-10 h-10 rounded-full overflow-hidden shrink-0 flex items-center justify-center bg-white/5 ${
+                  index === 0 ? "border-2 border-gold/40 shadow-[0_0_12px_rgba(212,168,67,0.15)]" : "border border-white/10"
+                }`}>
                   {user.image ? (
                     <Image src={user.image} alt={user.displayName ?? ""} width={40} height={40} className="object-cover w-full h-full" unoptimized />
                   ) : (
@@ -62,10 +77,16 @@ export default function Home() {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">{user.displayName ?? "Participante"}</p>
+                  <p className={`font-semibold text-sm truncate ${index === 0 ? "text-gold-light" : ""}`}>
+                    {user.displayName ?? "Participante"}
+                  </p>
                 </div>
 
-                <span className="bg-blue-500/10 text-blue-400 px-3 py-1 rounded-full text-xs sm:text-sm font-bold border border-blue-500/20 whitespace-nowrap shrink-0">
+                <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap shrink-0 font-display ${
+                  index === 0
+                    ? "bg-gold/15 text-gold border border-gold/30"
+                    : "bg-white/5 text-gray-300 border border-white/10"
+                }`}>
                   {user.score} pts
                 </span>
               </div>
@@ -81,7 +102,7 @@ export default function Home() {
         {users && users.length > 3 && !showAll && (
           <button
             onClick={() => setShowAll(true)}
-            className="w-full mt-4 py-2.5 text-sm font-semibold text-blue-400 hover:text-blue-300 transition-colors rounded-xl bg-blue-500/5 hover:bg-blue-500/10"
+            className="w-full mt-4 py-2.5 text-sm font-semibold text-gold hover:text-gold-light transition-colors rounded-xl bg-gold/5 hover:bg-gold/10 cursor-pointer"
           >
             Ver Ranking Completo
           </button>
@@ -89,7 +110,7 @@ export default function Home() {
         {showAll && (
           <button
             onClick={() => setShowAll(false)}
-            className="w-full mt-4 py-2.5 text-sm font-semibold text-gray-400 hover:text-gray-300 transition-colors rounded-xl bg-white/5 hover:bg-white/10"
+            className="w-full mt-4 py-2.5 text-sm font-semibold text-gray-400 hover:text-gray-300 transition-colors rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer"
           >
             Mostrar menos
           </button>
@@ -97,43 +118,47 @@ export default function Home() {
       </section>
 
       {/* Como ganar puntos */}
-      <section className="glass-card p-4 sm:p-6">
+      <section className="glass-card p-4 sm:p-6 border-l-2 border-l-gold/40">
         <div className="flex items-center gap-3 mb-4">
-          <Trophy className="text-blue-400 w-5 h-5 shrink-0" />
-          <h3 className="font-bold text-base sm:text-lg">Como ganar puntos?</h3>
+          <Trophy className="text-gold w-5 h-5 shrink-0" />
+          <h3 className="font-bold text-base sm:text-lg font-display uppercase tracking-wide">Como ganar puntos?</h3>
         </div>
         <div className="space-y-3">
           <div className="flex items-start gap-3">
-            <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
+            <CheckCircle2 className="w-5 h-5 text-green shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium">
-                <span className="text-white font-bold">Resultado exacto:</span> <span className="text-gray-400">3 puntos por cada marcador acertado.</span>
+                <span className="text-white font-bold">Resultado exacto:</span>{" "}
+                <span className="text-gray-400">3 puntos por cada marcador acertado.</span>
               </p>
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
+            <CheckCircle2 className="w-5 h-5 text-green shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium">
-                <span className="text-white font-bold">Ganador o empate:</span> <span className="text-gray-400">1 punto por acertar la tendencia.</span>
+                <span className="text-white font-bold">Ganador o empate:</span>{" "}
+                <span className="text-gray-400">1 punto por acertar la tendencia.</span>
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Proximos Pasos - Banner CTA (oculto si predicciones bloqueadas) */}
+      {/* Proximos Pasos — Banner CTA */}
       {!predictionsLocked && (
-        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600/20 via-blue-900/30 to-purple-900/20 border border-blue-500/20 p-5 sm:p-6">
+        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gold/10 via-gold-dark/15 to-navy-light border border-gold/20 p-5 sm:p-6">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(212,168,67,0.08),transparent_60%)]" />
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-3">
-              <Shield className="w-6 h-6 text-blue-400 shrink-0" />
-              <h3 className="font-bold text-lg">Proximos Pasos</h3>
+              <Shield className="w-6 h-6 text-gold shrink-0" />
+              <h3 className="font-bold text-lg font-display uppercase tracking-wide">Proximos Pasos</h3>
             </div>
             <p className="text-sm text-gray-300 mb-4 leading-relaxed">
               {missingPredictions > 0 ? (
                 <>
-                  Te falta{missingPredictions > 1 ? "n" : ""} <span className="text-white font-semibold">{missingPredictions}</span> prediccion
+                  Te falta{missingPredictions > 1 ? "n" : ""}{" "}
+                  <span className="text-gold font-semibold">{missingPredictions}</span> prediccion
                   {missingPredictions > 1 ? "es" : ""} por llenar.
                 </>
               ) : (
@@ -142,9 +167,10 @@ export default function Home() {
             </p>
             <Link
               href="/predictions"
-              className="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20 text-sm"
+              className="btn-gold inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 text-sm gap-2"
             >
               {missingPredictions > 0 ? "Comenzar Predicciones" : "Ver Mis Predicciones"}
+              <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
         </section>

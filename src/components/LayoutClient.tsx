@@ -43,41 +43,43 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     <LayoutContext.Provider value={{ isAdmin, predictionsLocked }}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6 md:py-8">
         <header className="flex items-center justify-between gap-4 mb-6 sm:mb-8 md:mb-12 border-b border-white/5 pb-4 sm:pb-6 md:pb-8">
-        <Link href="/">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-black gradient-text tracking-tighter">QUINIELA 2026</h1>
-        </Link>
+          <Link href="/" className="group">
+            <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-black gradient-text tracking-tight uppercase">
+              Quiniela 2026
+            </h1>
+          </Link>
 
-        <div className="flex items-center gap-4 sm:gap-6 md:gap-8">
-          <nav className="hidden md:flex gap-6 font-medium text-gray-400">
-            <Link href="/" className="hover:text-blue-400 transition-colors">
-              Inicio
-            </Link>
-            <Link href="/predictions" className="hover:text-blue-400 transition-colors">
-              {predictionsLocked ? "Predicciones" : "Mis Predicciones"}
-            </Link>
-            <Link href="/profile" className="hover:text-blue-400 transition-colors">
-              Perfil
-            </Link>
-            {isAdmin && (
-              <Link href="/admin/results" className="hover:text-amber-400 transition-colors">
-                Admin
+          <div className="flex items-center gap-4 sm:gap-6 md:gap-8">
+            <nav className="hidden md:flex gap-6 font-body font-medium text-gray-400">
+              <Link href="/" className="nav-link hover:text-gold transition-colors">
+                Inicio
               </Link>
-            )}
-          </nav>
+              <Link href="/predictions" className="nav-link hover:text-gold transition-colors">
+                {predictionsLocked ? "Predicciones" : "Mis Predicciones"}
+              </Link>
+              <Link href="/profile" className="nav-link hover:text-gold transition-colors">
+                Perfil
+              </Link>
+              {isAdmin && (
+                <Link href="/admin/results" className="nav-link hover:text-gold-light transition-colors">
+                  Admin
+                </Link>
+              )}
+            </nav>
 
-          <div className="hidden md:block h-6 w-px bg-white/10" />
+            <div className="hidden md:block h-6 w-px bg-white/10" />
 
-          <SignedIn>
-            <UserButton afterSignOutUrl="/" />
-          </SignedIn>
-          <SignedOut>
-            <SignInButton mode="modal">
-              <button className="bg-blue-600 hover:bg-blue-500 text-white px-4 sm:px-5 py-2 rounded-full font-bold text-sm transition-all shadow-lg shadow-blue-500/20">
-                Ingresar
-              </button>
-            </SignInButton>
-          </SignedOut>
-        </div>
+            <SignedIn>
+              <UserButton afterSignOutUrl="/" />
+            </SignedIn>
+            <SignedOut>
+              <SignInButton mode="modal">
+                <button className="btn-gold px-5 py-2 rounded-full text-sm cursor-pointer">
+                  Ingresar
+                </button>
+              </SignInButton>
+            </SignedOut>
+          </div>
         </header>
 
         <main className="pb-24 md:pb-0">{children}</main>

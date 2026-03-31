@@ -44,23 +44,23 @@ export default function Predictions() {
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
+        <Loader2 className="w-10 h-10 animate-spin text-gold" />
       </div>
     );
   }
 
   if (predictionsLocked) {
     return (
-      <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="space-y-5 animate-slide-up">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold">Predicciones</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold font-display uppercase tracking-wide">Predicciones</h2>
           <p className="text-gray-400 text-sm mt-1">
             Selecciona un participante para ver sus predicciones
           </p>
         </div>
 
         <div className="glass-card p-4 sm:p-5">
-          <label className="block text-xs font-medium text-gray-400 mb-3 uppercase tracking-wider">Participante</label>
+          <label className="block text-xs font-medium text-gold/60 mb-3 uppercase tracking-wider font-display">Participante</label>
           {leaderboard.length === 0 ? (
             <p className="text-gray-500 italic text-sm">No hay participantes en la tabla.</p>
           ) : (
@@ -72,8 +72,8 @@ export default function Predictions() {
                   className={cn(
                     "flex items-center gap-2 px-3 py-2 rounded-xl font-medium transition-all text-sm cursor-pointer",
                     selectedUserId === u._id
-                      ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
-                      : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-300"
+                      ? "bg-gold/20 text-gold border border-gold/30 shadow-lg shadow-gold/10"
+                      : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-300 border border-transparent"
                   )}
                 >
                   {u.image ? (
@@ -98,7 +98,7 @@ export default function Predictions() {
         ) : (
           <>
             <GroupTabs groups={groups} activeGroup={activeGroup} onChange={setActiveGroup} />
-            <div className="grid gap-4">
+            <div className="grid gap-4 stagger-children">
               {(activeGroup ?? groups[0]) && matchesByGroup[activeGroup ?? groups[0]]?.length > 0 ? (
                 matchesByGroup[activeGroup ?? groups[0]].map((match: any) => (
                   <MatchCardReadOnly
@@ -120,15 +120,15 @@ export default function Predictions() {
   }
 
   return (
-    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="space-y-5 animate-slide-up">
       <div>
-        <h2 className="text-2xl sm:text-3xl font-bold">Mis Predicciones</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold font-display uppercase tracking-wide">Mis Predicciones</h2>
         <p className="text-gray-400 text-sm mt-1">Define tus resultados antes del inicio del mundial</p>
       </div>
 
       <GroupTabs groups={groups} activeGroup={activeGroup} onChange={setActiveGroup} />
 
-      <div className="grid gap-4">
+      <div className="grid gap-4 stagger-children">
         {(activeGroup ?? groups[0]) && matchesByGroup[activeGroup ?? groups[0]]?.length > 0 ? (
           matchesByGroup[activeGroup ?? groups[0]].map((match: any) => (
             <MatchCard
@@ -170,9 +170,9 @@ function GroupTabs({
             key={group}
             onClick={() => onChange(group)}
             className={cn(
-              "px-4 py-2 rounded-full font-bold text-sm transition-all whitespace-nowrap cursor-pointer",
+              "px-4 py-2 rounded-full font-bold text-sm transition-all whitespace-nowrap cursor-pointer font-display",
               activeGroup === group
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
+                ? "bg-gradient-to-r from-gold to-gold-dark text-[#0a0a0a] shadow-lg shadow-gold/20"
                 : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-300"
             )}
           >
@@ -191,9 +191,9 @@ function MatchCardReadOnly({ match, prediction }: { match: any; prediction?: any
   const awayFlagUrl = match.awayTeamDetails?.flagUrl;
 
   return (
-    <div className="glass-card p-4 sm:p-5 hover:border-blue-500/30 transition-all">
+    <div className="glass-card p-4 sm:p-5 hover-lift">
       <div className="flex items-center justify-between mb-4">
-        <span className="text-[10px] uppercase tracking-widest text-blue-400 font-bold bg-blue-400/10 px-2 py-0.5 rounded">
+        <span className="text-[10px] uppercase tracking-widest text-gold font-bold bg-gold/10 px-2 py-0.5 rounded font-display">
           Grupo {match.group}
         </span>
         <div className="flex items-center gap-1.5 text-xs text-gray-500">
@@ -208,18 +208,18 @@ function MatchCardReadOnly({ match, prediction }: { match: any; prediction?: any
             {homeFlagUrl ? (
               <Image src={homeFlagUrl} alt={homeName} width={56} height={56} className="object-cover w-full h-full" unoptimized />
             ) : (
-              <span className="text-lg font-bold text-gray-400">{homeName[0] || "?"}</span>
+              <span className="text-lg font-bold text-gray-400 font-display">{homeName[0] || "?"}</span>
             )}
           </div>
           <span className="font-semibold text-xs sm:text-sm text-center truncate max-w-full">{homeName}</span>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <span className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-lg sm:text-xl font-bold">
+          <span className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-lg sm:text-xl font-bold font-display">
             {prediction?.homeScore ?? "-"}
           </span>
           <span className="text-sm font-bold text-gray-500">vs</span>
-          <span className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-lg sm:text-xl font-bold">
+          <span className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-lg sm:text-xl font-bold font-display">
             {prediction?.awayScore ?? "-"}
           </span>
         </div>
@@ -229,7 +229,7 @@ function MatchCardReadOnly({ match, prediction }: { match: any; prediction?: any
             {awayFlagUrl ? (
               <Image src={awayFlagUrl} alt={awayName} width={56} height={56} className="object-cover w-full h-full" unoptimized />
             ) : (
-              <span className="text-lg font-bold text-gray-400">{awayName[0] || "?"}</span>
+              <span className="text-lg font-bold text-gray-400 font-display">{awayName[0] || "?"}</span>
             )}
           </div>
           <span className="font-semibold text-xs sm:text-sm text-center truncate max-w-full">{awayName}</span>
@@ -253,14 +253,14 @@ function MatchCard({ match, prediction, onSave, isSaving, locked }: any) {
   const awayFlagUrl = match.awayTeamDetails?.flagUrl;
 
   const inputClass = cn(
-    "w-10 h-10 sm:w-12 sm:h-12 bg-white/5 border border-white/10 rounded-xl text-center text-lg sm:text-xl font-bold focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+    "w-11 h-11 sm:w-13 sm:h-13 bg-white/5 border border-white/10 rounded-xl text-center text-lg sm:text-xl font-bold font-display focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all score-input [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
     locked && "opacity-50 cursor-not-allowed"
   );
 
   return (
-    <div className="glass-card p-4 sm:p-5 hover:border-blue-500/30 transition-all">
+    <div className="glass-card p-4 sm:p-5 hover-lift">
       <div className="flex items-center justify-between mb-4">
-        <span className="text-[10px] uppercase tracking-widest text-blue-400 font-bold bg-blue-400/10 px-2 py-0.5 rounded">
+        <span className="text-[10px] uppercase tracking-widest text-gold font-bold bg-gold/10 px-2 py-0.5 rounded font-display">
           Grupo {match.group}
         </span>
         <div className="flex items-center gap-1.5 text-xs text-gray-500">
@@ -275,7 +275,7 @@ function MatchCard({ match, prediction, onSave, isSaving, locked }: any) {
             {homeFlagUrl ? (
               <Image src={homeFlagUrl} alt={homeName} width={56} height={56} className="object-cover w-full h-full" unoptimized />
             ) : (
-              <span className="text-lg font-bold text-gray-400">{homeName[0] || "?"}</span>
+              <span className="text-lg font-bold text-gray-400 font-display">{homeName[0] || "?"}</span>
             )}
           </div>
           <span className="font-semibold text-xs sm:text-sm text-center truncate max-w-full">{homeName}</span>
@@ -300,7 +300,7 @@ function MatchCard({ match, prediction, onSave, isSaving, locked }: any) {
             className={inputClass}
             placeholder="0"
           />
-          <span className="text-sm font-bold text-gray-500">vs</span>
+          <span className="text-sm font-bold text-gray-500 font-display">vs</span>
           <input
             type="number"
             min={0}
@@ -326,7 +326,7 @@ function MatchCard({ match, prediction, onSave, isSaving, locked }: any) {
             {awayFlagUrl ? (
               <Image src={awayFlagUrl} alt={awayName} width={56} height={56} className="object-cover w-full h-full" unoptimized />
             ) : (
-              <span className="text-lg font-bold text-gray-400">{awayName[0] || "?"}</span>
+              <span className="text-lg font-bold text-gray-400 font-display">{awayName[0] || "?"}</span>
             )}
           </div>
           <span className="font-semibold text-xs sm:text-sm text-center truncate max-w-full">{awayName}</span>
@@ -335,7 +335,7 @@ function MatchCard({ match, prediction, onSave, isSaving, locked }: any) {
 
       <div className="mt-4">
         {justSaved ? (
-          <div className="flex items-center justify-center gap-2 py-2.5 text-green-400 text-sm font-medium">
+          <div className="flex items-center justify-center gap-2 py-2.5 text-green text-sm font-medium">
             <CheckCircle2 className="w-4 h-4" />
             Prediccion guardada correctamente
           </div>
@@ -347,10 +347,10 @@ function MatchCard({ match, prediction, onSave, isSaving, locked }: any) {
             }}
             disabled={locked || !hasChanged || isSaving || homeScore === "" || awayScore === ""}
             className={cn(
-              "w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all text-sm",
-              hasChanged && homeScore !== "" && awayScore !== "" && !isSaving && "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 cursor-pointer",
+              "w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all text-sm cursor-pointer",
+              hasChanged && homeScore !== "" && awayScore !== "" && !isSaving && "btn-gold",
               (!hasChanged || homeScore === "" || awayScore === "") && "bg-white/5 text-gray-500 cursor-not-allowed",
-              isSaving && "bg-blue-600/50 text-white cursor-wait"
+              isSaving && "bg-gold/50 text-[#0a0a0a] cursor-wait"
             )}
           >
             {isSaving ? (
