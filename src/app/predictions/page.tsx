@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Save, Calendar, Loader2, User, CheckCircle2, Download } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -340,10 +340,20 @@ function MatchCard({
   const [awayScore, setAwayScore] = useState<string>(
     prediction?.awayScore !== undefined ? String(prediction.awayScore) : ""
   );
+  const [showSavedMsg, setShowSavedMsg] = useState(false);
+  const prevSaving = useRef(false);
+
+  useEffect(() => {
+    if (prevSaving.current && !isSaving) {
+      setShowSavedMsg(true);
+      const timer = setTimeout(() => setShowSavedMsg(false), 2000);
+      return () => clearTimeout(timer);
+    }
+    prevSaving.current = isSaving;
+  }, [isSaving]);
 
   const hasChanged = prediction?.homeScore !== Number(homeScore) || prediction?.awayScore !== Number(awayScore);
   const hasPrediction = prediction?.homeScore !== undefined && prediction?.awayScore !== undefined;
-  const justSaved = isSaving === false && !hasChanged && hasPrediction;
 
   const homeName = match.homeTeamDetails?.name || (typeof match.homeTeam === "string" ? match.homeTeam : "TBD");
   const awayName = match.awayTeamDetails?.name || (typeof match.awayTeam === "string" ? match.awayTeam : "TBD");
@@ -434,9 +444,9 @@ function MatchCard({
         </div>
       </div>
 
-      {(justSaved || hasChanged || !hasPrediction) && (
+      {(showSavedMsg || hasChanged || isSaving || !hasPrediction) && (
         <div className="mt-4">
-          {justSaved ? (
+          {showSavedMsg && !hasChanged ? (
             <div className="flex items-center justify-center gap-2 py-2.5 text-green text-sm font-medium">
               <CheckCircle2 className="w-4 h-4" />
               Prediccion guardada correctamente

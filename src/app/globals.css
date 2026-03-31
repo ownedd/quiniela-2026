@@ -90,11 +90,10 @@ h1, h2, h3, h4 {
 .glass-card {
   background: var(--glass);
   backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--glass-border);
   border-radius: 1rem;
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
 }
 
@@ -102,20 +101,19 @@ h1, h2, h3, h4 {
   border-color: var(--glass-border-hover);
   box-shadow:
     0 12px 40px rgba(0, 0, 0, 0.5),
-    0 0 20px rgba(212, 168, 67, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    0 0 20px rgba(212, 168, 67, 0.05);
 }
 
 .glass-card-gold {
   background: var(--glass);
   backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--glass-border);
   border-top: 2px solid var(--gold);
   border-radius: 1rem;
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.4),
-    0 -4px 20px rgba(212, 168, 67, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    0 -4px 20px rgba(212, 168, 67, 0.06);
 }
 
 /* ===== Gradient Text ===== */
