@@ -82,6 +82,9 @@ export const generatePredictionsExport = internalAction({
 
       const usedSheetNames = new Set<string>(["Resumen"]);
       const predictionsByUser = new Map<string, Map<string, { homeScore: number; awayScore: number }>>();
+      const bonusPredictionsByUser = new Map(
+        data.bonusPredictions.map((prediction) => [prediction.userId, prediction])
+      );
 
       for (const prediction of data.predictions) {
         const userPredictions =
@@ -130,6 +133,38 @@ export const generatePredictionsExport = internalAction({
           });
         }
 
+        const bonusPrediction = bonusPredictionsByUser.get(user._id);
+        worksheet.addRow({});
+        const sectionTitleRow = worksheet.addRow(["Predicciones especiales", "", "", "", "", ""]);
+        worksheet.mergeCells(`A${sectionTitleRow.number}:F${sectionTitleRow.number}`);
+        sectionTitleRow.font = { bold: true, size: 12 };
+        sectionTitleRow.alignment = { horizontal: "left", vertical: "middle" };
+
+        worksheet.addRow({
+          group: "Goleador",
+          date: bonusPrediction?.topScorerName ?? "",
+          homeTeam: bonusPrediction?.topScorerTeamName ?? "",
+          homeScore: "",
+          awayScore: "",
+          awayTeam: "",
+        });
+        worksheet.addRow({
+          group: "Mas goles",
+          date: bonusPrediction?.mostGoalsTeamName ?? "",
+          homeTeam: "",
+          homeScore: "",
+          awayScore: "",
+          awayTeam: "",
+        });
+        worksheet.addRow({
+          group: "Menos recibidos",
+          date: bonusPrediction?.leastConcededTeamName ?? "",
+          homeTeam: "",
+          homeScore: "",
+          awayScore: "",
+          awayTeam: "",
+        });
+
         worksheet.insertRows(1, [
           [user.displayName, "", "", "", "", ""],
         ]);
@@ -165,6 +200,7 @@ export const generatePredictionsExport = internalAction({
         },
         { field: "Usuarios exportados", value: data.users.length },
         { field: "Predicciones registradas", value: data.predictions.length },
+        { field: "Predicciones especiales", value: data.bonusPredictions.length },
         { field: "Partidos exportados", value: data.matches.length },
       ]);
 

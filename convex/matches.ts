@@ -1,8 +1,8 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import type { MutationCtx } from "./_generated/server";
-import { updateScoresForMatch } from "./scoring";
-import { teams, matches } from "./seedData";
+import { recalculateLeaderboardInMutation } from "./scoring";
+import { players, teams, matches } from "./seedData";
 import type { Doc, Id } from "./_generated/dataModel";
 
 type GroupedMatch = Doc<"matches"> & {
@@ -63,6 +63,11 @@ export const seed = mutation({
   args: {},
   handler: async (ctx) => {
     // Limpiar datos existentes
+    const existingPlayers = await ctx.db.query("players").collect();
+    for (const player of existingPlayers) {
+      await ctx.db.delete(player._id);
+    }
+
     const existingMatches = await ctx.db.query("matches").collect();
     for (const match of existingMatches) {
       await ctx.db.delete(match._id);
@@ -78,6 +83,19 @@ export const seed = mutation({
     for (const team of teams) {
       const id = await ctx.db.insert("teams", team);
       teamIdsByName[team.name] = id;
+    }
+
+    for (const player of players) {
+      const teamId = teamIdsByName[player.team];
+      if (!teamId) {
+        console.error(`Team not found for player: ${player.name} (${player.team})`);
+        continue;
+      }
+
+      await ctx.db.insert("players", {
+        name: player.name,
+        teamId,
+      });
     }
     
     // Insertar partidos usando los IDs de los equipos
@@ -100,10 +118,16 @@ export const seed = mutation({
         city: match.city,
         homeScore: undefined,
         awayScore: undefined,
+        homeScorers: undefined,
+        awayScorers: undefined,
       });
     }
     
-    return { teamsInserted: teams.length, matchesInserted: matches.length };
+    return {
+      teamsInserted: teams.length,
+      playersInserted: players.length,
+      matchesInserted: matches.length,
+    };
   },
 });
 
@@ -123,6 +147,8 @@ export const setResult = mutation({
     matchId: v.id("matches"),
     homeScore: v.optional(v.number()),
     awayScore: v.optional(v.number()),
+    homeScorers: v.optional(v.array(v.id("players"))),
+    awayScorers: v.optional(v.array(v.id("players"))),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
@@ -136,27 +162,53 @@ export const setResult = mutation({
       throw new Error("Resultado incompleto: debes indicar ambos marcadores o dejar ambos vacios para limpiar");
     }
 
-    const oldHome = match.homeScore;
-    const oldAway = match.awayScore;
-    const oldStatus = match.status;
-
     if (hasHome && hasAway) {
       const h = args.homeScore!;
       const a = args.awayScore!;
       if (h < 0 || a < 0) throw new Error("Los marcadores no pueden ser negativos");
+
+      const homeScorers = args.homeScorers ?? [];
+      const awayScorers = args.awayScorers ?? [];
+
+      if (homeScorers.length !== h) {
+        throw new Error("Debes indicar exactamente un goleador por cada gol del equipo local");
+      }
+
+      if (awayScorers.length !== a) {
+        throw new Error("Debes indicar exactamente un goleador por cada gol del equipo visitante");
+      }
+
+      for (const playerId of homeScorers) {
+        const player = await ctx.db.get(playerId);
+        if (!player || player.teamId !== match.homeTeam) {
+          throw new Error("Todos los goleadores locales deben pertenecer al equipo local");
+        }
+      }
+
+      for (const playerId of awayScorers) {
+        const player = await ctx.db.get(playerId);
+        if (!player || player.teamId !== match.awayTeam) {
+          throw new Error("Todos los goleadores visitantes deben pertenecer al equipo visitante");
+        }
+      }
+
       await ctx.db.patch(args.matchId, {
         homeScore: h,
         awayScore: a,
+        homeScorers,
+        awayScorers,
         status: "finished",
       });
-      await updateScoresForMatch(ctx, args.matchId, oldHome, oldAway, oldStatus, h, a, "finished");
     } else {
       await ctx.db.patch(args.matchId, {
         homeScore: undefined,
         awayScore: undefined,
+        homeScorers: undefined,
+        awayScorers: undefined,
         status: "scheduled",
       });
-      await updateScoresForMatch(ctx, args.matchId, oldHome, oldAway, oldStatus, undefined, undefined, "scheduled");
     }
+
+    await recalculateLeaderboardInMutation(ctx);
   },
 });

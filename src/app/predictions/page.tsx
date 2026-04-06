@@ -6,6 +6,7 @@ import { Save, Calendar, Loader2, User, CheckCircle2, Download } from "lucide-re
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { SearchableSelect, type SearchableSelectOption } from "@/components/SearchableSelect";
 import { useUser } from "@clerk/nextjs";
 import type { Id } from "../../../convex/_generated/dataModel";
 
@@ -37,6 +38,49 @@ type LeaderboardUser = {
   score: number;
 };
 
+type PlayerOption = {
+  _id: Id<"players">;
+  name: string;
+  teamId: Id<"teams">;
+  teamName: string;
+  teamCode: string;
+  teamFlagUrl?: string | null;
+  group: string;
+};
+
+type TeamOption = {
+  _id: Id<"teams">;
+  name: string;
+  code: string;
+  flagUrl?: string | null;
+  group: string;
+};
+
+type BonusPredictionView = {
+  _id: string;
+  userId: Id<"users">;
+  topScorer?: Id<"players">;
+  mostGoalsTeam?: Id<"teams">;
+  leastConcededTeam?: Id<"teams">;
+  topScorerDetails?: {
+    _id: Id<"players">;
+    name: string;
+    teamId: Id<"teams">;
+    teamName: string;
+    teamFlagUrl?: string | null;
+  } | null;
+  mostGoalsTeamDetails?: {
+    _id: Id<"teams">;
+    name: string;
+    flagUrl?: string | null;
+  } | null;
+  leastConcededTeamDetails?: {
+    _id: Id<"teams">;
+    name: string;
+    flagUrl?: string | null;
+  } | null;
+} | null;
+
 function LocalDateTime({
   value,
   options,
@@ -54,17 +98,34 @@ function LocalDateTime({
 export default function Predictions() {
   const { user, isLoaded } = useUser();
   const matchesByGroup = (useQuery(api.matches.byGroup) ?? {}) as Record<string, MatchView[]>;
+  const teams = (useQuery(api.teams.list) ?? []) as TeamOption[];
+  const players = (useQuery(api.bonusPredictions.getPlayers) ?? []) as PlayerOption[];
   const settings = useQuery(api.tournamentSettings.get);
   const leaderboard = (useQuery(api.users.leaderboard) ?? []) as LeaderboardUser[];
   const submitPrediction = useMutation(api.predictions.submit);
+  const submitBonusPrediction = useMutation(api.bonusPredictions.submit);
   const userPredictions = (
     useQuery(api.predictions.getMine, isLoaded && user ? {} : "skip") ?? []
   ) as MatchPrediction[];
+  const userBonusPrediction = useQuery(
+    api.bonusPredictions.getMine,
+    isLoaded && user ? {} : "skip"
+  ) as BonusPredictionView;
   const [saving, setSaving] = useState<string | null>(null);
+  const [savingBonus, setSavingBonus] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<Id<"users"> | null>(null);
   const groups = Object.keys(matchesByGroup).sort();
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const currentGroup = activeGroup ?? groups[0] ?? null;
+  const [bonusForm, setBonusForm] = useState<{
+    topScorer: Id<"players"> | null;
+    mostGoalsTeam: Id<"teams"> | null;
+    leastConcededTeam: Id<"teams"> | null;
+  }>({
+    topScorer: null,
+    mostGoalsTeam: null,
+    leastConcededTeam: null,
+  });
 
   const predictionsLocked = settings?.predictionsLocked ?? false;
   const predictionsExport = useQuery(
@@ -77,6 +138,40 @@ export default function Predictions() {
       predictionsLocked && selectedUserId ? { userId: selectedUserId } : "skip"
     ) ?? []
   ) as MatchPrediction[];
+  const selectedUserBonusPrediction = useQuery(
+    api.bonusPredictions.getByUserId,
+    predictionsLocked && selectedUserId ? { userId: selectedUserId } : "skip"
+  ) as BonusPredictionView;
+
+  useEffect(() => {
+    setBonusForm({
+      topScorer: userBonusPrediction?.topScorer ?? null,
+      mostGoalsTeam: userBonusPrediction?.mostGoalsTeam ?? null,
+      leastConcededTeam: userBonusPrediction?.leastConcededTeam ?? null,
+    });
+  }, [
+    userBonusPrediction?.topScorer,
+    userBonusPrediction?.mostGoalsTeam,
+    userBonusPrediction?.leastConcededTeam,
+  ]);
+
+  const playerOptions: SearchableSelectOption[] = players.map((player) => ({
+    value: player._id,
+    label: player.name,
+    subtitle: player.teamName,
+    imageUrl: player.teamFlagUrl,
+    group: `Grupo ${player.group} · ${player.teamName}`,
+  }));
+
+  const teamOptions: SearchableSelectOption[] = [...teams]
+    .sort((a, b) => a.name.localeCompare(b.name, "es"))
+    .map((team) => ({
+      value: team._id,
+      label: team.name,
+      subtitle: `Grupo ${team.group}`,
+      imageUrl: team.flagUrl,
+      group: `Grupo ${team.group}`,
+    }));
 
   const handleSave = async (matchId: Id<"matches">, homeScore: number, awayScore: number) => {
     setSaving(matchId);
@@ -86,6 +181,26 @@ export default function Predictions() {
       console.error(error);
     }
     setTimeout(() => setSaving(null), 1000);
+  };
+
+  const hasBonusChanges =
+    bonusForm.topScorer !== (userBonusPrediction?.topScorer ?? null) ||
+    bonusForm.mostGoalsTeam !== (userBonusPrediction?.mostGoalsTeam ?? null) ||
+    bonusForm.leastConcededTeam !== (userBonusPrediction?.leastConcededTeam ?? null);
+
+  const handleSaveBonus = async () => {
+    setSavingBonus(true);
+    try {
+      await submitBonusPrediction({
+        topScorer: bonusForm.topScorer ?? undefined,
+        mostGoalsTeam: bonusForm.mostGoalsTeam ?? undefined,
+        leastConcededTeam: bonusForm.leastConcededTeam ?? undefined,
+      });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setTimeout(() => setSavingBonus(false), 1000);
+    }
   };
 
   if (!isLoaded) {
@@ -176,6 +291,7 @@ export default function Predictions() {
           </div>
         ) : (
           <>
+            <BonusPredictionsReadOnly prediction={selectedUserBonusPrediction} />
             <GroupTabs groups={groups} activeGroup={currentGroup} onChange={setActiveGroup} />
             <div className="grid gap-4 stagger-children">
               {currentGroup && matchesByGroup[currentGroup]?.length > 0 ? (
@@ -205,6 +321,16 @@ export default function Predictions() {
         <p className="text-gray-400 text-sm mt-1">Define tus resultados antes del inicio del mundial</p>
       </div>
 
+      <BonusPredictionsEditor
+        values={bonusForm}
+        onChange={setBonusForm}
+        onSave={handleSaveBonus}
+        hasChanges={hasBonusChanges}
+        isSaving={savingBonus}
+        playerOptions={playerOptions}
+        teamOptions={teamOptions}
+      />
+
       <GroupTabs groups={groups} activeGroup={currentGroup} onChange={setActiveGroup} />
 
       <div className="grid gap-4 stagger-children">
@@ -226,6 +352,193 @@ export default function Predictions() {
             </p>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function BonusPredictionsEditor({
+  values,
+  onChange,
+  onSave,
+  hasChanges,
+  isSaving,
+  playerOptions,
+  teamOptions,
+}: {
+  values: {
+    topScorer: Id<"players"> | null;
+    mostGoalsTeam: Id<"teams"> | null;
+    leastConcededTeam: Id<"teams"> | null;
+  };
+  onChange: React.Dispatch<
+    React.SetStateAction<{
+      topScorer: Id<"players"> | null;
+      mostGoalsTeam: Id<"teams"> | null;
+      leastConcededTeam: Id<"teams"> | null;
+    }>
+  >;
+  onSave: () => void;
+  hasChanges: boolean;
+  isSaving: boolean;
+  playerOptions: SearchableSelectOption[];
+  teamOptions: SearchableSelectOption[];
+}) {
+  return (
+    <div className="glass-card-gold p-4 sm:p-5">
+      <div className="mb-5 flex items-start justify-between gap-3">
+        <div>
+          <h3 className="font-display text-lg font-bold uppercase tracking-wide">
+            Predicciones especiales
+          </h3>
+          <p className="mt-1 text-sm text-gray-400">
+            Elige tu goleador, mejor ataque y mejor defensa del torneo.
+          </p>
+        </div>
+        <div className="rounded-full border border-gold/15 bg-gold/10 px-3 py-1 text-[11px] font-display uppercase tracking-[0.2em] text-gold">
+          10 pts c/u
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <SearchableSelect
+          label="Mejor goleador"
+          placeholder="Selecciona un jugador"
+          options={playerOptions}
+          value={values.topScorer}
+          onChange={(value) =>
+            onChange((current) => ({
+              ...current,
+              topScorer: (value as Id<"players"> | null) ?? null,
+            }))
+          }
+          searchPlaceholder="Buscar jugador o equipo"
+        />
+        <SearchableSelect
+          label="Equipo con mas goles"
+          placeholder="Selecciona un equipo"
+          options={teamOptions}
+          value={values.mostGoalsTeam}
+          onChange={(value) =>
+            onChange((current) => ({
+              ...current,
+              mostGoalsTeam: (value as Id<"teams"> | null) ?? null,
+            }))
+          }
+          searchPlaceholder="Buscar equipo"
+        />
+        <SearchableSelect
+          label="Equipo con menos goles recibidos"
+          placeholder="Selecciona un equipo"
+          options={teamOptions}
+          value={values.leastConcededTeam}
+          onChange={(value) =>
+            onChange((current) => ({
+              ...current,
+              leastConcededTeam: (value as Id<"teams"> | null) ?? null,
+            }))
+          }
+          searchPlaceholder="Buscar equipo"
+        />
+      </div>
+
+      <div className="mt-5 flex justify-end">
+        <button
+          onClick={onSave}
+          disabled={!hasChanges || isSaving}
+          className={cn(
+            "inline-flex min-w-52 items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition-all cursor-pointer",
+            hasChanges && !isSaving
+              ? "btn-gold"
+              : "bg-white/5 text-gray-500 cursor-not-allowed",
+            isSaving && "bg-gold/50 text-[#0a0a0a] cursor-wait"
+          )}
+        >
+          {isSaving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <>
+              <Save className="h-4 w-4" />
+              Guardar predicciones especiales
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function BonusPredictionsReadOnly({ prediction }: { prediction: BonusPredictionView }) {
+  return (
+    <div className="glass-card-gold p-4 sm:p-5">
+      <div className="mb-5">
+        <h3 className="font-display text-lg font-bold uppercase tracking-wide">
+          Predicciones especiales
+        </h3>
+        <p className="mt-1 text-sm text-gray-400">
+          Selecciones del participante para las categorias bonus.
+        </p>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <PredictionHighlightCard
+          title="Mejor goleador"
+          value={prediction?.topScorerDetails?.name ?? "Sin seleccionar"}
+          subtitle={prediction?.topScorerDetails?.teamName}
+          imageUrl={prediction?.topScorerDetails?.teamFlagUrl}
+        />
+        <PredictionHighlightCard
+          title="Equipo con mas goles"
+          value={prediction?.mostGoalsTeamDetails?.name ?? "Sin seleccionar"}
+          imageUrl={prediction?.mostGoalsTeamDetails?.flagUrl}
+        />
+        <PredictionHighlightCard
+          title="Equipo con menos goles recibidos"
+          value={prediction?.leastConcededTeamDetails?.name ?? "Sin seleccionar"}
+          imageUrl={prediction?.leastConcededTeamDetails?.flagUrl}
+        />
+      </div>
+    </div>
+  );
+}
+
+function PredictionHighlightCard({
+  title,
+  value,
+  subtitle,
+  imageUrl,
+}: {
+  title: string;
+  value: string;
+  subtitle?: string;
+  imageUrl?: string | null;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+      <div className="mb-3 text-[11px] font-display uppercase tracking-[0.22em] text-gold/60">
+        {title}
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/5">
+          {imageUrl ? (
+            <Image
+              src={imageUrl}
+              alt={value}
+              width={48}
+              height={48}
+              className="h-full w-full object-cover"
+              unoptimized
+            />
+          ) : (
+            <span className="font-display text-lg font-bold text-gray-400">
+              {value[0] ?? "?"}
+            </span>
+          )}
+        </div>
+        <div className="min-w-0">
+          <div className="truncate text-sm font-semibold text-white">{value}</div>
+          {subtitle ? <div className="truncate text-xs text-gray-500">{subtitle}</div> : null}
+        </div>
       </div>
     </div>
   );
@@ -344,12 +657,20 @@ function MatchCard({
   const prevSaving = useRef(false);
 
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
     if (prevSaving.current && !isSaving) {
-      setShowSavedMsg(true);
-      const timer = setTimeout(() => setShowSavedMsg(false), 2000);
-      return () => clearTimeout(timer);
+      timer = setTimeout(() => {
+        setShowSavedMsg(true);
+        setTimeout(() => setShowSavedMsg(false), 2000);
+      }, 0);
     }
+
     prevSaving.current = isSaving;
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [isSaving]);
 
   const hasChanged = prediction?.homeScore !== Number(homeScore) || prediction?.awayScore !== Number(awayScore);

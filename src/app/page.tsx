@@ -48,10 +48,10 @@ export default function Home() {
                   index === 0
                     ? "bg-gold/[0.08] border border-gold/20"
                     : index === 1
-                    ? "bg-white/[0.04] border border-white/5"
-                    : index === 2
-                    ? "bg-white/[0.03] border border-white/5"
-                    : "bg-white/[0.02] hover:bg-white/[0.04]"
+                      ? "bg-white/[0.04] border border-white/5"
+                      : index === 2
+                        ? "bg-white/[0.03] border border-white/5"
+                        : "bg-white/[0.02] hover:bg-white/[0.04]"
                 }`}
               >
                 <div className="flex items-center justify-center w-8 shrink-0">
@@ -66,9 +66,11 @@ export default function Home() {
                   )}
                 </div>
 
-                <div className={`w-10 h-10 rounded-full overflow-hidden shrink-0 flex items-center justify-center bg-white/5 ${
-                  index === 0 ? "border-2 border-gold/40 shadow-[0_0_12px_rgba(212,168,67,0.15)]" : "border border-white/10"
-                }`}>
+                <div
+                  className={`w-10 h-10 rounded-full overflow-hidden shrink-0 flex items-center justify-center bg-white/5 ${
+                    index === 0 ? "border-2 border-gold/40 shadow-[0_0_12px_rgba(212,168,67,0.15)]" : "border border-white/10"
+                  }`}
+                >
                   {user.image ? (
                     <Image src={user.image} alt={user.displayName ?? ""} width={40} height={40} className="object-cover w-full h-full" unoptimized />
                   ) : (
@@ -77,16 +79,14 @@ export default function Home() {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <p className={`font-semibold text-sm truncate ${index === 0 ? "text-gold-light" : ""}`}>
-                    {user.displayName ?? "Participante"}
-                  </p>
+                  <p className={`font-semibold text-sm truncate ${index === 0 ? "text-gold-light" : ""}`}>{user.displayName ?? "Participante"}</p>
                 </div>
 
-                <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap shrink-0 font-display ${
-                  index === 0
-                    ? "bg-gold/15 text-gold border border-gold/30"
-                    : "bg-white/5 text-gray-300 border border-white/10"
-                }`}>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap shrink-0 font-display ${
+                    index === 0 ? "bg-gold/15 text-gold border border-gold/30" : "bg-white/5 text-gray-300 border border-white/10"
+                  }`}
+                >
                   {user.score} pts
                 </span>
               </div>
@@ -128,8 +128,7 @@ export default function Home() {
             <CheckCircle2 className="w-5 h-5 text-green shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium">
-                <span className="text-white font-bold">Resultado exacto:</span>{" "}
-                <span className="text-gray-400">3 puntos por cada marcador acertado.</span>
+                <span className="text-white font-bold">Resultado exacto:</span> <span className="text-gray-400">3 puntos cada uno.</span>
               </p>
             </div>
           </div>
@@ -137,8 +136,31 @@ export default function Home() {
             <CheckCircle2 className="w-5 h-5 text-green shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium">
-                <span className="text-white font-bold">Ganador o empate:</span>{" "}
-                <span className="text-gray-400">1 punto por acertar la tendencia.</span>
+                <span className="text-white font-bold">Ganador o empate:</span> <span className="text-gray-400">1 punto cada uno.</span>
+              </p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="w-5 h-5 text-green shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium">
+                <span className="text-white font-bold">Mejor goleador:</span> <span className="text-gray-400">10 puntos.</span>
+              </p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="w-5 h-5 text-green shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium">
+                <span className="text-white font-bold">Equipo con mas goles anotados:</span> <span className="text-gray-400">10 puntos.</span>
+              </p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="w-5 h-5 text-green shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium">
+                <span className="text-white font-bold">Equipo con menos goles recibidos:</span> <span className="text-gray-400">10 puntos.</span>
               </p>
             </div>
           </div>
@@ -157,18 +179,14 @@ export default function Home() {
             <p className="text-sm text-gray-300 mb-4 leading-relaxed">
               {missingPredictions > 0 ? (
                 <>
-                  Te falta{missingPredictions > 1 ? "n" : ""}{" "}
-                  <span className="text-gold font-semibold">{missingPredictions}</span> prediccion
+                  Te falta{missingPredictions > 1 ? "n" : ""} <span className="text-gold font-semibold">{missingPredictions}</span> prediccion
                   {missingPredictions > 1 ? "es" : ""} por llenar.
                 </>
               ) : (
                 <>Listo. Puedes cambiar tus predicciones hasta el comienzo del mundial.</>
               )}
             </p>
-            <Link
-              href="/predictions"
-              className="btn-gold inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 text-sm gap-2"
-            >
+            <Link href="/predictions" className="btn-gold inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 text-sm gap-2">
               {missingPredictions > 0 ? "Comenzar Predicciones" : "Ver Mis Predicciones"}
               <ChevronRight className="w-4 h-4" />
             </Link>

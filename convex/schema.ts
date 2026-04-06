@@ -16,6 +16,9 @@ export default defineSchema({
     predictionsLocked: v.boolean(),
     lockedAt: v.optional(v.string()),
     updatedBy: v.optional(v.id("users")),
+    actualTopScorer: v.optional(v.id("players")),
+    actualMostGoalsTeam: v.optional(v.id("teams")),
+    actualLeastConcededTeam: v.optional(v.id("teams")),
     predictionsExportStorageId: v.optional(v.id("_storage")),
     predictionsExportFilename: v.optional(v.string()),
     predictionsExportGeneratedAt: v.optional(v.string()),
@@ -34,12 +37,19 @@ export default defineSchema({
     flagUrl: v.optional(v.string()),
   }).index("by_group", ["group"]),
 
+  players: defineTable({
+    name: v.string(),
+    teamId: v.id("teams"),
+  }).index("by_teamId", ["teamId"]),
+
   matches: defineTable({
     homeTeam: v.id("teams"),
     awayTeam: v.id("teams"),
     date: v.string(),
     homeScore: v.optional(v.number()),
     awayScore: v.optional(v.number()),
+    homeScorers: v.optional(v.array(v.id("players"))),
+    awayScorers: v.optional(v.array(v.id("players"))),
     status: v.string(),
     group: v.string(),
     venue: v.string(),
@@ -54,4 +64,11 @@ export default defineSchema({
   })
     .index("by_user_match", ["userId", "matchId"])
     .index("by_matchId", ["matchId"]),
+
+  bonusPredictions: defineTable({
+    userId: v.id("users"),
+    topScorer: v.optional(v.id("players")),
+    mostGoalsTeam: v.optional(v.id("teams")),
+    leastConcededTeam: v.optional(v.id("teams")),
+  }).index("by_userId", ["userId"]),
 });

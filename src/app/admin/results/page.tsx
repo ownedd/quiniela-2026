@@ -6,6 +6,7 @@ import { Save, Calendar, Loader2, Lock, Unlock } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { SearchableSelect, type SearchableSelectOption } from "@/components/SearchableSelect";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import type { Id } from "../../../../convex/_generated/dataModel";
@@ -22,8 +23,30 @@ type AdminMatchView = {
   status: string;
   homeScore?: number;
   awayScore?: number;
+  homeTeam: Id<"teams">;
+  awayTeam: Id<"teams">;
+  homeScorers?: Id<"players">[];
+  awayScorers?: Id<"players">[];
   homeTeamDetails?: AdminMatchDetails | null;
   awayTeamDetails?: AdminMatchDetails | null;
+};
+
+type PlayerOption = {
+  _id: Id<"players">;
+  name: string;
+  teamId: Id<"teams">;
+  teamName: string;
+  teamCode: string;
+  teamFlagUrl?: string | null;
+  group: string;
+};
+
+type TeamOption = {
+  _id: Id<"teams">;
+  name: string;
+  code: string;
+  flagUrl?: string | null;
+  group: string;
 };
 
 function LocalDateTime({
@@ -47,8 +70,11 @@ export default function AdminResultsPage() {
   const bootstrapAsFirstAdmin = useMutation(api.users.bootstrapAsFirstAdmin);
   const settings = useQuery(api.tournamentSettings.get);
   const matchesByGroup = (useQuery(api.matches.byGroup) ?? {}) as Record<string, AdminMatchView[]>;
+  const teams = (useQuery(api.teams.list) ?? []) as TeamOption[];
+  const players = (useQuery(api.bonusPredictions.getPlayers) ?? []) as PlayerOption[];
   const setPredictionsLocked = useMutation(api.tournamentSettings.setPredictionsLocked);
   const setResult = useMutation(api.matches.setResult);
+  const addPlayer = useMutation(api.bonusPredictions.addPlayer);
   const [savingMatch, setSavingMatch] = useState<Id<"matches"> | null>(null);
   const [togglingLock, setTogglingLock] = useState(false);
   const [bootstrapping, setBootstrapping] = useState(false);
@@ -60,10 +86,24 @@ export default function AdminResultsPage() {
     if (groups.length > 0 && !activeGroup) setActiveGroup(groups[0]);
   }, [groups, activeGroup]);
 
+  const playerOptions: SearchableSelectOption[] = players.map((player) => ({
+    value: player._id,
+    label: player.name,
+    subtitle: player.teamName,
+    imageUrl: player.teamFlagUrl,
+    group: `Grupo ${player.group} · ${player.teamName}`,
+  }));
+  const currentMostGoalsTeam = teams.find((team) => team._id === settings?.actualMostGoalsTeam);
+  const currentLeastConcededTeam = teams.find(
+    (team) => team._id === settings?.actualLeastConcededTeam
+  );
+
   const handleSetResult = async (
     matchId: Id<"matches">,
     homeScore: number | undefined,
-    awayScore: number | undefined
+    awayScore: number | undefined,
+    homeScorers: Id<"players">[] | undefined,
+    awayScorers: Id<"players">[] | undefined
   ) => {
     setSavingMatch(matchId);
     setMessage(null);
@@ -72,12 +112,14 @@ export default function AdminResultsPage() {
         matchId,
         homeScore: homeScore !== undefined ? homeScore : undefined,
         awayScore: awayScore !== undefined ? awayScore : undefined,
+        homeScorers,
+        awayScorers,
       });
       setMessage({
         type: "success",
         text:
           homeScore !== undefined && awayScore !== undefined
-            ? "Resultado guardado. La tabla se actualizara automaticamente."
+            ? "Resultado y goleadores guardados. Las predicciones especiales se recalcularon automaticamente."
             : "Resultado limpiado. El partido queda como no jugado.",
       });
     } catch (err) {
@@ -240,6 +282,43 @@ export default function AdminResultsPage() {
         </p>
       )}
 
+      <div className="glass-card-gold p-4 sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 className="font-bold font-display uppercase tracking-wide">
+              Predicciones especiales automaticas
+            </h3>
+            <p className="mt-1 text-sm text-gray-400">
+              Se calculan automaticamente con los partidos finalizados y los goleadores que registres en cada resultado.
+            </p>
+          </div>
+          <div className="text-xs text-gold/80 font-display uppercase tracking-[0.2em]">
+            Ranking en vivo
+          </div>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <AutoBonusResultCard
+            title="Mejor goleador"
+            value={playerOptions.find((player) => player.value === settings?.actualTopScorer)?.label ?? "Sin lider unico"}
+            subtitle={playerOptions.find((player) => player.value === settings?.actualTopScorer)?.subtitle}
+          />
+          <AutoBonusResultCard
+            title="Equipo con mas goles"
+            value={currentMostGoalsTeam?.name ?? "Sin lider unico"}
+            subtitle={currentMostGoalsTeam ? `Grupo ${currentMostGoalsTeam.group}` : undefined}
+          />
+          <AutoBonusResultCard
+            title="Equipo con menos goles recibidos"
+            value={currentLeastConcededTeam?.name ?? "Sin lider unico"}
+            subtitle={
+              currentLeastConcededTeam
+                ? `Grupo ${currentLeastConcededTeam.group}`
+                : undefined
+            }
+          />
+        </div>
+      </div>
+
       <div>
         <h3 className="font-bold mb-4 font-display uppercase tracking-wide">Resultados oficiales</h3>
         {groups.length > 0 && (
@@ -264,12 +343,15 @@ export default function AdminResultsPage() {
         )}
         <div className="grid gap-4 stagger-children">
           {(activeGroup ?? groups[0]) && matchesByGroup[activeGroup ?? groups[0]]?.length > 0 ? (
-            matchesByGroup[activeGroup ?? groups[0]].map((match) => (
+            matchesByGroup[activeGroup ?? groups[0]].map((match, idx, arr) => (
               <AdminMatchCard
                 key={match._id}
                 match={match}
                 onSave={handleSetResult}
                 isSaving={savingMatch === match._id}
+                players={players}
+                zIndex={arr.length - idx}
+                onAddPlayer={addPlayer}
               />
             ))
           ) : (
@@ -289,10 +371,22 @@ function AdminMatchCard({
   match,
   onSave,
   isSaving,
+  players,
+  zIndex = 1,
+  onAddPlayer,
 }: {
   match: AdminMatchView;
-  onSave: (matchId: Id<"matches">, homeScore: number | undefined, awayScore: number | undefined) => void;
+  onSave: (
+    matchId: Id<"matches">,
+    homeScore: number | undefined,
+    awayScore: number | undefined,
+    homeScorers: Id<"players">[] | undefined,
+    awayScorers: Id<"players">[] | undefined
+  ) => void;
   isSaving: boolean;
+  players: PlayerOption[];
+  zIndex?: number;
+  onAddPlayer: (args: { name: string; teamId: Id<"teams"> }) => Promise<Id<"players">>;
 }) {
   const [homeScore, setHomeScore] = useState<string>(
     match.homeScore !== undefined && match.homeScore !== null ? String(match.homeScore) : ""
@@ -300,14 +394,36 @@ function AdminMatchCard({
   const [awayScore, setAwayScore] = useState<string>(
     match.awayScore !== undefined && match.awayScore !== null ? String(match.awayScore) : ""
   );
+  const [homeScorers, setHomeScorers] = useState<Array<Id<"players"> | null>>(
+    (match.homeScorers ?? []).map((playerId) => playerId)
+  );
+  const [awayScorers, setAwayScorers] = useState<Array<Id<"players"> | null>>(
+    (match.awayScorers ?? []).map((playerId) => playerId)
+  );
 
   const homeName = match.homeTeamDetails?.name || "TBD";
   const awayName = match.awayTeamDetails?.name || "TBD";
   const homeFlagUrl = match.homeTeamDetails?.flagUrl;
   const awayFlagUrl = match.awayTeamDetails?.flagUrl;
   const isFinished = match.status === "finished";
+  const normalizeScorerSlots = (
+    current: Array<Id<"players"> | null>,
+    size: number
+  ) => {
+    if (size <= 0) return [];
+    return Array.from({ length: size }, (_, index) => current[index] ?? null);
+  };
+  const homeGoals = homeScore === "" ? 0 : Number(homeScore);
+  const awayGoals = awayScore === "" ? 0 : Number(awayScore);
+  const normalizedHomeScorers = normalizeScorerSlots(homeScorers, homeGoals);
+  const normalizedAwayScorers = normalizeScorerSlots(awayScorers, awayGoals);
+  const originalHomeScorers = match.homeScorers ?? [];
+  const originalAwayScorers = match.awayScorers ?? [];
   const hasChanged =
-    (match.homeScore ?? "") !== homeScore || (match.awayScore ?? "") !== awayScore;
+    (match.homeScore ?? "") !== homeScore ||
+    (match.awayScore ?? "") !== awayScore ||
+    JSON.stringify(normalizedHomeScorers) !== JSON.stringify(originalHomeScorers) ||
+    JSON.stringify(normalizedAwayScorers) !== JSON.stringify(originalAwayScorers);
   const bothFilled =
     homeScore !== "" &&
     awayScore !== "" &&
@@ -316,17 +432,44 @@ function AdminMatchCard({
     Number(homeScore) >= 0 &&
     Number(awayScore) >= 0;
   const bothEmpty = homeScore === "" && awayScore === "";
+  const validScorers =
+    normalizedHomeScorers.every(Boolean) && normalizedAwayScorers.every(Boolean);
   const canSave =
     hasChanged &&
-    (bothFilled || (bothEmpty && isFinished));
+    ((bothFilled && validScorers) || (bothEmpty && isFinished));
+  const homePlayerOptions = players
+    .filter((player) => player.teamId === match.homeTeam)
+    .map((player) => ({
+      value: player._id,
+      label: player.name,
+      subtitle: player.teamName,
+      imageUrl: player.teamFlagUrl,
+    }));
+  const awayPlayerOptions = players
+    .filter((player) => player.teamId === match.awayTeam)
+    .map((player) => ({
+      value: player._id,
+      label: player.name,
+      subtitle: player.teamName,
+      imageUrl: player.teamFlagUrl,
+    }));
+
+  const handleCreateHomePlayer = async (name: string) => {
+    return await onAddPlayer({ name, teamId: match.homeTeam });
+  };
+
+  const handleCreateAwayPlayer = async (name: string) => {
+    return await onAddPlayer({ name, teamId: match.awayTeam });
+  };
 
   const inputClass =
     "w-11 h-11 sm:w-13 sm:h-13 bg-white/5 border border-white/10 rounded-xl text-center text-lg sm:text-xl font-bold font-display focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all score-input [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
 
   return (
     <div
+      style={{ zIndex }}
       className={cn(
-        "glass-card p-4 sm:p-5 hover-lift",
+        "glass-card p-4 sm:p-5 hover-lift overflow-visible relative",
         isFinished && "border-green/30"
       )}
     >
@@ -372,9 +515,16 @@ function AdminMatchCard({
             }}
             onChange={(e) => {
               const v = e.target.value;
-              if (v === "") return setHomeScore("");
+              if (v === "") {
+                setHomeScore("");
+                setHomeScorers([]);
+                return;
+              }
               const n = Number(v);
-              if (!isNaN(n) && n >= 0) setHomeScore(v);
+              if (!isNaN(n) && n >= 0) {
+                setHomeScore(v);
+                setHomeScorers((current) => normalizeScorerSlots(current, n));
+              }
             }}
             className={inputClass}
             placeholder="0"
@@ -389,9 +539,16 @@ function AdminMatchCard({
             }}
             onChange={(e) => {
               const v = e.target.value;
-              if (v === "") return setAwayScore("");
+              if (v === "") {
+                setAwayScore("");
+                setAwayScorers([]);
+                return;
+              }
               const n = Number(v);
-              if (!isNaN(n) && n >= 0) setAwayScore(v);
+              if (!isNaN(n) && n >= 0) {
+                setAwayScore(v);
+                setAwayScorers((current) => normalizeScorerSlots(current, n));
+              }
             }}
             className={inputClass}
             placeholder="0"
@@ -410,13 +567,68 @@ function AdminMatchCard({
         </div>
       </div>
 
+      {(normalizedHomeScorers.length > 0 || normalizedAwayScorers.length > 0) && (
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <div className="space-y-3 rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+            <p className="text-[11px] font-display uppercase tracking-[0.2em] text-gold/65">
+              Goleadores {homeName}
+            </p>
+            {normalizedHomeScorers.map((scorer, index) => (
+              <SearchableSelect
+                key={`home-scorer-${index}`}
+                label={`Gol local ${index + 1}`}
+                placeholder="Selecciona goleador"
+                options={homePlayerOptions}
+                value={scorer}
+                onChange={(value) =>
+                  setHomeScorers((current) =>
+                    normalizeScorerSlots(current, homeGoals).map((item, itemIndex) =>
+                      itemIndex === index ? (value as Id<"players"> | null) : item
+                    )
+                  )
+                }
+                searchPlaceholder="Buscar jugador local"
+                onCreateNew={handleCreateHomePlayer}
+                createNewLabel="Agregar jugador"
+              />
+            ))}
+          </div>
+          <div className="space-y-3 rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+            <p className="text-[11px] font-display uppercase tracking-[0.2em] text-gold/65">
+              Goleadores {awayName}
+            </p>
+            {normalizedAwayScorers.map((scorer, index) => (
+              <SearchableSelect
+                key={`away-scorer-${index}`}
+                label={`Gol visitante ${index + 1}`}
+                placeholder="Selecciona goleador"
+                options={awayPlayerOptions}
+                value={scorer}
+                onChange={(value) =>
+                  setAwayScorers((current) =>
+                    normalizeScorerSlots(current, awayGoals).map((item, itemIndex) =>
+                      itemIndex === index ? (value as Id<"players"> | null) : item
+                    )
+                  )
+                }
+                searchPlaceholder="Buscar jugador visitante"
+                onCreateNew={handleCreateAwayPlayer}
+                createNewLabel="Agregar jugador"
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mt-4">
         <button
           onClick={() =>
             onSave(
               match._id,
               bothEmpty ? undefined : Number(homeScore),
-              bothEmpty ? undefined : Number(awayScore)
+              bothEmpty ? undefined : Number(awayScore),
+              bothEmpty ? undefined : normalizedHomeScorers.filter(Boolean) as Id<"players">[],
+              bothEmpty ? undefined : normalizedAwayScorers.filter(Boolean) as Id<"players">[]
             )
           }
           disabled={!canSave || isSaving}
@@ -436,7 +648,32 @@ function AdminMatchCard({
             </>
           )}
         </button>
+        {bothFilled && !validScorers ? (
+          <p className="mt-3 text-xs text-gold/80">
+            Debes seleccionar un goleador por cada gol registrado.
+          </p>
+        ) : null}
       </div>
+    </div>
+  );
+}
+
+function AutoBonusResultCard({
+  title,
+  value,
+  subtitle,
+}: {
+  title: string;
+  value: string;
+  subtitle?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+      <div className="text-[11px] font-display uppercase tracking-[0.2em] text-gold/60">
+        {title}
+      </div>
+      <div className="mt-2 text-sm font-semibold text-white">{value}</div>
+      {subtitle ? <div className="mt-1 text-xs text-gray-500">{subtitle}</div> : null}
     </div>
   );
 }
