@@ -4,48 +4,28 @@ import type { Id } from "./_generated/dataModel";
 
 const BONUS_POINTS = 10;
 
-function calculatePoints(
-  predHome: number,
-  predAway: number,
-  realHome: number,
-  realAway: number
-): number {
+function calculatePoints(predHome: number, predAway: number, realHome: number, realAway: number): number {
   const exactMatch = predHome === realHome && predAway === realAway;
   if (exactMatch) return 3;
 
-  const predWinner =
-    predHome > predAway ? "home" : predHome < predAway ? "away" : "draw";
-  const realWinner =
-    realHome > realAway ? "home" : realHome < realAway ? "away" : "draw";
+  const predWinner = predHome > predAway ? "home" : predHome < predAway ? "away" : "draw";
+  const realWinner = realHome > realAway ? "home" : realHome < realAway ? "away" : "draw";
   if (predWinner === realWinner) return 1;
 
   return 0;
 }
 
-function pickAllLeaders(
-  entries: Array<[string, number]>,
-  mode: "max" | "min"
-): string[] {
+function pickAllLeaders(entries: Array<[string, number]>, mode: "max" | "min"): string[] {
   if (entries.length === 0) return [];
 
-  const sorted = [...entries].sort((a, b) =>
-    mode === "max" ? b[1] - a[1] : a[1] - b[1]
-  );
+  const sorted = [...entries].sort((a, b) => (mode === "max" ? b[1] - a[1] : a[1] - b[1]));
   const bestValue = sorted[0][1];
   return sorted.filter(([, value]) => value === bestValue).map(([id]) => id);
 }
 
 async function recalculateBonusResultsInMutation(ctx: MutationCtx) {
-  const [matches, players] = await Promise.all([
-    ctx.db.query("matches").collect(),
-    ctx.db.query("players").collect(),
-  ]);
-  const finishedMatches = matches.filter(
-    (match) =>
-      match.status === "finished" &&
-      match.homeScore !== undefined &&
-      match.awayScore !== undefined
-  );
+  const [matches, players] = await Promise.all([ctx.db.query("matches").collect(), ctx.db.query("players").collect()]);
+  const finishedMatches = matches.filter((match) => match.status === "finished" && match.homeScore !== undefined && match.awayScore !== undefined);
 
   const goalsFor = new Map<string, number>();
   const goalsAgainst = new Map<string, number>();
@@ -55,14 +35,8 @@ async function recalculateBonusResultsInMutation(ctx: MutationCtx) {
   for (const match of finishedMatches) {
     goalsFor.set(match.homeTeam, (goalsFor.get(match.homeTeam) ?? 0) + match.homeScore!);
     goalsFor.set(match.awayTeam, (goalsFor.get(match.awayTeam) ?? 0) + match.awayScore!);
-    goalsAgainst.set(
-      match.homeTeam,
-      (goalsAgainst.get(match.homeTeam) ?? 0) + match.awayScore!
-    );
-    goalsAgainst.set(
-      match.awayTeam,
-      (goalsAgainst.get(match.awayTeam) ?? 0) + match.homeScore!
-    );
+    goalsAgainst.set(match.homeTeam, (goalsAgainst.get(match.homeTeam) ?? 0) + match.awayScore!);
+    goalsAgainst.set(match.awayTeam, (goalsAgainst.get(match.awayTeam) ?? 0) + match.homeScore!);
 
     for (const scorerId of match.homeScorers ?? []) {
       if (!playerSet.has(scorerId)) continue;
@@ -75,19 +49,10 @@ async function recalculateBonusResultsInMutation(ctx: MutationCtx) {
     }
   }
 
-  const actualMostGoalsTeams = pickAllLeaders(
-    Array.from(goalsFor.entries()),
-    "max"
-  ) as Id<"teams">[];
-  const actualLeastConcededTeams = pickAllLeaders(
-    Array.from(goalsAgainst.entries()),
-    "min"
-  ) as Id<"teams">[];
+  const actualMostGoalsTeams = pickAllLeaders(Array.from(goalsFor.entries()), "max") as Id<"teams">[];
+  const actualLeastConcededTeams = pickAllLeaders(Array.from(goalsAgainst.entries()), "min") as Id<"teams">[];
   const scorerEntries = Array.from(scorerGoals.entries());
-  const actualTopScorers =
-    scorerEntries.length === 0
-      ? ([] as Id<"players">[])
-      : (pickAllLeaders(scorerEntries, "max") as Id<"players">[]);
+  const actualTopScorers = scorerEntries.length === 0 ? ([] as Id<"players">[]) : (pickAllLeaders(scorerEntries, "max") as Id<"players">[]);
 
   const settings = await ctx.db.query("tournamentSettings").first();
   if (settings) {
@@ -144,12 +109,7 @@ export async function recalculateLeaderboardInMutation(ctx: MutationCtx) {
     if (homeScore === undefined || awayScore === undefined) continue;
     const matchPreds = predictions.filter((p) => p.matchId === match._id);
     for (const p of matchPreds) {
-      const pts = calculatePoints(
-        p.homeScore,
-        p.awayScore,
-        homeScore,
-        awayScore
-      );
+      const pts = calculatePoints(p.homeScore, p.awayScore, homeScore, awayScore);
       scores[p.userId] = (scores[p.userId] ?? 0) + pts;
     }
   }
@@ -165,10 +125,7 @@ export async function recalculateLeaderboardInMutation(ctx: MutationCtx) {
       bonus += BONUS_POINTS;
     }
 
-    if (
-      prediction.leastConcededTeam &&
-      leastConcededTeamIds.has(prediction.leastConcededTeam)
-    ) {
+    if (prediction.leastConcededTeam && leastConcededTeamIds.has(prediction.leastConcededTeam)) {
       bonus += BONUS_POINTS;
     }
 

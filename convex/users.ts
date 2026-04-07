@@ -179,4 +179,3 @@ export const updateDisplayName = mutation({
     return user._id;
   },
 });
-

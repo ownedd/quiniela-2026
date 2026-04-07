@@ -10,7 +10,9 @@ export default defineSchema({
     score: v.number(),
     clerkId: v.optional(v.string()),
     isAdmin: v.optional(v.boolean()),
-  }).index("by_clerkId", ["clerkId"]).index("by_score", ["score"]),
+  })
+    .index("by_clerkId", ["clerkId"])
+    .index("by_score", ["score"]),
 
   tournamentSettings: defineTable({
     predictionsLocked: v.boolean(),
@@ -22,9 +24,7 @@ export default defineSchema({
     predictionsExportStorageId: v.optional(v.id("_storage")),
     predictionsExportFilename: v.optional(v.string()),
     predictionsExportGeneratedAt: v.optional(v.string()),
-    predictionsExportStatus: v.optional(
-      v.union(v.literal("generating"), v.literal("ready"), v.literal("error"))
-    ),
+    predictionsExportStatus: v.optional(v.union(v.literal("generating"), v.literal("ready"), v.literal("error"))),
     predictionsExportError: v.optional(v.string()),
     predictionsExportToken: v.optional(v.string()),
     predictionsExportScheduledId: v.optional(v.id("_scheduled_functions")),

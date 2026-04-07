@@ -27,16 +27,10 @@ export type AutoBonusDisplay = {
   leastConcededFooter?: string;
 };
 
-export function computeAutoBonusDisplay(
-  settings: AutoBonusSettings,
-  players: AutoBonusPlayerRow[],
-  teams: AutoBonusTeamRow[]
-): AutoBonusDisplay {
+export function computeAutoBonusDisplay(settings: AutoBonusSettings, players: AutoBonusPlayerRow[], teams: AutoBonusTeamRow[]): AutoBonusDisplay {
   const topScorerIds = settings?.actualTopScorers ?? [];
 
-  const topScorerLines = topScorerIds
-    .map((id) => players.find((p) => p._id === id)?.name)
-    .filter(Boolean) as string[];
+  const topScorerLines = topScorerIds.map((id) => players.find((p) => p._id === id)?.name).filter(Boolean) as string[];
   const topScorerFooter =
     topScorerLines.length > 1
       ? "Empate: cuentan todos los goleadores empatados al maximo"
@@ -45,9 +39,7 @@ export function computeAutoBonusDisplay(
         : undefined;
 
   const actualMostGoalsTeamIds = settings?.actualMostGoalsTeams ?? [];
-  const mostGoalsLines = actualMostGoalsTeamIds
-    .map((id) => teams.find((t) => t._id === id)?.name)
-    .filter(Boolean) as string[];
+  const mostGoalsLines = actualMostGoalsTeamIds.map((id) => teams.find((t) => t._id === id)?.name).filter(Boolean) as string[];
   const mostGoalsSingle = teams.find((t) => t._id === actualMostGoalsTeamIds[0]);
   const mostGoalsFooter =
     actualMostGoalsTeamIds.length === 1
@@ -59,9 +51,7 @@ export function computeAutoBonusDisplay(
         : undefined;
 
   const actualLeastConcededIds = settings?.actualLeastConcededTeams ?? [];
-  const leastConcededLines = actualLeastConcededIds
-    .map((id) => teams.find((t) => t._id === id)?.name)
-    .filter(Boolean) as string[];
+  const leastConcededLines = actualLeastConcededIds.map((id) => teams.find((t) => t._id === id)?.name).filter(Boolean) as string[];
   const leastConcededSingle = teams.find((t) => t._id === actualLeastConcededIds[0]);
   const leastConcededFooter =
     actualLeastConcededIds.length === 1

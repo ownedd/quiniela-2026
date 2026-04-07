@@ -15,15 +15,10 @@ async function requireAdmin(ctx: MutationCtx) {
   return user;
 }
 
-async function cleanupPredictionsExport(
-  ctx: MutationCtx,
-  settings: Doc<"tournamentSettings"> | null
-) {
+async function cleanupPredictionsExport(ctx: MutationCtx, settings: Doc<"tournamentSettings"> | null) {
   if (settings?.predictionsExportScheduledId) {
     try {
-      await ctx.scheduler.cancel(
-        settings.predictionsExportScheduledId as Id<"_scheduled_functions">
-      );
+      await ctx.scheduler.cancel(settings.predictionsExportScheduledId as Id<"_scheduled_functions">);
     } catch {
       // Ignorar jobs ya iniciados o cancelados.
     }
@@ -71,9 +66,7 @@ export const getPredictionsExport = query({
     const settings = await ctx.db.query("tournamentSettings").first();
     if (!settings?.predictionsLocked) return null;
 
-    const url = settings.predictionsExportStorageId
-      ? await ctx.storage.getUrl(settings.predictionsExportStorageId)
-      : null;
+    const url = settings.predictionsExportStorageId ? await ctx.storage.getUrl(settings.predictionsExportStorageId) : null;
 
     return {
       status: settings.predictionsExportStatus ?? "generating",
@@ -132,11 +125,7 @@ export const setPredictionsLocked = mutation({
         });
       }
 
-      const scheduledId = await ctx.scheduler.runAfter(
-        0,
-        internal.predictionsExport.generatePredictionsExport,
-        { token: exportToken }
-      );
+      const scheduledId = await ctx.scheduler.runAfter(0, internal.predictionsExport.generatePredictionsExport, { token: exportToken });
 
       if (settingsId) {
         await ctx.db.patch(settingsId, {

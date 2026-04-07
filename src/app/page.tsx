@@ -16,7 +16,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { AutoBonusResultsSection } from "@/components/AutoBonusResultsSection";
-import { computeAutoBonusDisplay } from "@/lib/autoBonusLines";
+import { computeAutoBonusDisplay, type AutoBonusDisplay } from "@/lib/autoBonusLines";
 import type { Id } from "../../convex/_generated/dataModel";
 
 type LeaderboardRow = {
@@ -25,6 +25,12 @@ type LeaderboardRow = {
   image?: string | null;
   score: number;
   bonusPoints: number;
+};
+
+const emptyAutoBonusDisplay: AutoBonusDisplay = {
+  topScorerLines: [],
+  mostGoalsLines: [],
+  leastConcededLines: [],
 };
 
 export default function Home() {
@@ -44,23 +50,24 @@ export default function Home() {
   const missingPredictions = totalMatches - completedPredictions;
   const predictionsLocked = settings?.predictionsLocked ?? false;
 
-  const autoBonusDisplay = useMemo(
-    () =>
-      computeAutoBonusDisplay(
-        settings ?? null,
-        (playersQuery ?? []).map((p) => ({
-          _id: p._id,
-          name: p.name,
-          teamName: p.teamName,
-        })),
-        (teamsQuery ?? []).map((t) => ({
-          _id: t._id,
-          name: t.name,
-          group: t.group,
-        }))
-      ),
-    [settings, playersQuery, teamsQuery]
-  );
+  const autoBonusDisplay = useMemo(() => {
+    if (!predictionsLocked) {
+      return emptyAutoBonusDisplay;
+    }
+    return computeAutoBonusDisplay(
+      settings ?? null,
+      (playersQuery ?? []).map((p) => ({
+        _id: p._id,
+        name: p.name,
+        teamName: p.teamName,
+      })),
+      (teamsQuery ?? []).map((t) => ({
+        _id: t._id,
+        name: t.name,
+        group: t.group,
+      }))
+    );
+  }, [predictionsLocked, settings, playersQuery, teamsQuery]);
 
   return (
     <div className="space-y-6 animate-slide-up">
@@ -163,7 +170,7 @@ export default function Home() {
         )}
       </section>
 
-      <AutoBonusResultsSection variant="home" display={autoBonusDisplay} />
+      {predictionsLocked ? <AutoBonusResultsSection variant="home" display={autoBonusDisplay} /> : null}
 
       {/* Como ganar puntos */}
       <section className="glass-card p-4 sm:p-6 border-l-2 border-l-gold/40">
