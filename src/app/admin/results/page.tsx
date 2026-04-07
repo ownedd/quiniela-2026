@@ -4,9 +4,11 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Save, Calendar, Loader2, Lock, Unlock } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { SearchableSelect, type SearchableSelectOption } from "@/components/SearchableSelect";
+import { AutoBonusResultsSection } from "@/components/AutoBonusResultsSection";
+import { computeAutoBonusDisplay } from "@/lib/autoBonusLines";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import type { Id } from "../../../../convex/_generated/dataModel";
@@ -93,9 +95,23 @@ export default function AdminResultsPage() {
     imageUrl: player.teamFlagUrl,
     group: `Grupo ${player.group} · ${player.teamName}`,
   }));
-  const currentMostGoalsTeam = teams.find((team) => team._id === settings?.actualMostGoalsTeam);
-  const currentLeastConcededTeam = teams.find(
-    (team) => team._id === settings?.actualLeastConcededTeam
+
+  const autoBonusDisplay = useMemo(
+    () =>
+      computeAutoBonusDisplay(
+        settings ?? null,
+        players.map((p) => ({
+          _id: p._id,
+          name: p.name,
+          teamName: p.teamName,
+        })),
+        teams.map((t) => ({
+          _id: t._id,
+          name: t.name,
+          group: t.group,
+        }))
+      ),
+    [settings, players, teams]
   );
 
   const handleSetResult = async (
@@ -282,42 +298,11 @@ export default function AdminResultsPage() {
         </p>
       )}
 
-      <div className="glass-card-gold p-4 sm:p-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h3 className="font-bold font-display uppercase tracking-wide">
-              Predicciones especiales automaticas
-            </h3>
-            <p className="mt-1 text-sm text-gray-400">
-              Se calculan automaticamente con los partidos finalizados y los goleadores que registres en cada resultado.
-            </p>
-          </div>
-          <div className="text-xs text-gold/80 font-display uppercase tracking-[0.2em]">
-            Ranking en vivo
-          </div>
-        </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <AutoBonusResultCard
-            title="Mejor goleador"
-            value={playerOptions.find((player) => player.value === settings?.actualTopScorer)?.label ?? "Sin lider unico"}
-            subtitle={playerOptions.find((player) => player.value === settings?.actualTopScorer)?.subtitle}
-          />
-          <AutoBonusResultCard
-            title="Equipo con mas goles"
-            value={currentMostGoalsTeam?.name ?? "Sin lider unico"}
-            subtitle={currentMostGoalsTeam ? `Grupo ${currentMostGoalsTeam.group}` : undefined}
-          />
-          <AutoBonusResultCard
-            title="Equipo con menos goles recibidos"
-            value={currentLeastConcededTeam?.name ?? "Sin lider unico"}
-            subtitle={
-              currentLeastConcededTeam
-                ? `Grupo ${currentLeastConcededTeam.group}`
-                : undefined
-            }
-          />
-        </div>
-      </div>
+      <AutoBonusResultsSection
+        variant="admin"
+        display={autoBonusDisplay}
+        subtitle="Se calculan automaticamente con los partidos finalizados y los goleadores que registres en cada resultado."
+      />
 
       <div>
         <h3 className="font-bold mb-4 font-display uppercase tracking-wide">Resultados oficiales</h3>
@@ -654,26 +639,6 @@ function AdminMatchCard({
           </p>
         ) : null}
       </div>
-    </div>
-  );
-}
-
-function AutoBonusResultCard({
-  title,
-  value,
-  subtitle,
-}: {
-  title: string;
-  value: string;
-  subtitle?: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-      <div className="text-[11px] font-display uppercase tracking-[0.2em] text-gold/60">
-        {title}
-      </div>
-      <div className="mt-2 text-sm font-semibold text-white">{value}</div>
-      {subtitle ? <div className="mt-1 text-xs text-gray-500">{subtitle}</div> : null}
     </div>
   );
 }

@@ -2,16 +2,37 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Trophy, Medal, User, Loader2, CheckCircle2, Shield, ChevronRight } from "lucide-react";
+import {
+  Trophy,
+  Medal,
+  User,
+  Loader2,
+  CheckCircle2,
+  Shield,
+  ChevronRight,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useUser } from "@clerk/nextjs";
+import { AutoBonusResultsSection } from "@/components/AutoBonusResultsSection";
+import { computeAutoBonusDisplay } from "@/lib/autoBonusLines";
+import type { Id } from "../../convex/_generated/dataModel";
+
+type LeaderboardRow = {
+  _id: Id<"users">;
+  displayName?: string;
+  image?: string | null;
+  score: number;
+  bonusPoints: number;
+};
 
 export default function Home() {
   const { isLoaded, user } = useUser();
-  const users = useQuery(api.users.leaderboard);
+  const users = useQuery(api.users.leaderboard) as LeaderboardRow[] | undefined;
   const settings = useQuery(api.tournamentSettings.get);
+  const teamsQuery = useQuery(api.teams.list);
+  const playersQuery = useQuery(api.bonusPredictions.getPlayers);
   const matchesByGroup = useQuery(api.matches.byGroup) ?? {};
   const userPredictions = useQuery(api.predictions.getMine, isLoaded && user ? {} : "skip") ?? [];
   const [showAll, setShowAll] = useState(false);
@@ -22,6 +43,24 @@ export default function Home() {
   const completedPredictions = userPredictions.length;
   const missingPredictions = totalMatches - completedPredictions;
   const predictionsLocked = settings?.predictionsLocked ?? false;
+
+  const autoBonusDisplay = useMemo(
+    () =>
+      computeAutoBonusDisplay(
+        settings ?? null,
+        (playersQuery ?? []).map((p) => ({
+          _id: p._id,
+          name: p.name,
+          teamName: p.teamName,
+        })),
+        (teamsQuery ?? []).map((t) => ({
+          _id: t._id,
+          name: t.name,
+          group: t.group,
+        }))
+      ),
+    [settings, playersQuery, teamsQuery]
+  );
 
   return (
     <div className="space-y-6 animate-slide-up">
@@ -82,13 +121,20 @@ export default function Home() {
                   <p className={`font-semibold text-sm truncate ${index === 0 ? "text-gold-light" : ""}`}>{user.displayName ?? "Participante"}</p>
                 </div>
 
-                <span
-                  className={`px-3 py-1 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap shrink-0 font-display ${
-                    index === 0 ? "bg-gold/15 text-gold border border-gold/30" : "bg-white/5 text-gray-300 border border-white/10"
-                  }`}
-                >
-                  {user.score} pts
-                </span>
+                <div className="flex flex-col items-end gap-0.5 shrink-0 text-right">
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap font-display ${
+                      index === 0 ? "bg-gold/15 text-gold border border-gold/30" : "bg-white/5 text-gray-300 border border-white/10"
+                    }`}
+                  >
+                    {user.score} pts
+                  </span>
+                  {(user.bonusPoints ?? 0) > 0 ? (
+                    <span className="text-[10px] text-gray-500 font-display tabular-nums">
+                      incluye {user.bonusPoints ?? 0} de especiales
+                    </span>
+                  ) : null}
+                </div>
               </div>
             ))
           ) : (
@@ -117,6 +163,8 @@ export default function Home() {
         )}
       </section>
 
+      <AutoBonusResultsSection variant="home" display={autoBonusDisplay} />
+
       {/* Como ganar puntos */}
       <section className="glass-card p-4 sm:p-6 border-l-2 border-l-gold/40">
         <div className="flex items-center gap-3 mb-4">
@@ -144,7 +192,10 @@ export default function Home() {
             <CheckCircle2 className="w-5 h-5 text-green shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium">
-                <span className="text-white font-bold">Mejor goleador:</span> <span className="text-gray-400">10 puntos.</span>
+                <span className="text-white font-bold">Mejor goleador:</span>{" "}
+                <span className="text-gray-400">
+                  10 puntos. Si hay empate entre varios, acertar con cualquiera de ellos vale.
+                </span>
               </p>
             </div>
           </div>
@@ -152,7 +203,10 @@ export default function Home() {
             <CheckCircle2 className="w-5 h-5 text-green shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium">
-                <span className="text-white font-bold">Equipo con mas goles anotados:</span> <span className="text-gray-400">10 puntos.</span>
+                <span className="text-white font-bold">Equipo con mas goles anotados:</span>{" "}
+                <span className="text-gray-400">
+                  10 puntos. Empates entre equipos: cualquiera de los empatados cuenta.
+                </span>
               </p>
             </div>
           </div>
@@ -160,7 +214,10 @@ export default function Home() {
             <CheckCircle2 className="w-5 h-5 text-green shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium">
-                <span className="text-white font-bold">Equipo con menos goles recibidos:</span> <span className="text-gray-400">10 puntos.</span>
+                <span className="text-white font-bold">Equipo con menos goles recibidos:</span>{" "}
+                <span className="text-gray-400">
+                  10 puntos. Misma regla si hay empate en la mejor defensa.
+                </span>
               </p>
             </div>
           </div>

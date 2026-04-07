@@ -36,6 +36,7 @@ type LeaderboardUser = {
   displayName?: string;
   image?: string | null;
   score: number;
+  bonusPoints?: number;
 };
 
 type PlayerOption = {

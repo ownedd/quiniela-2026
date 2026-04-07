@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+const BONUS_POINTS_PER_CATEGORY = 10;
 
 export const store = mutation({
   args: {},
@@ -101,13 +102,40 @@ export const setAdmin = mutation({
 export const leaderboard = query({
   args: {},
   handler: async (ctx) => {
-    const users = await ctx.db.query("users").withIndex("by_score").order("desc").collect();
-    return users.map((u) => ({
-      _id: u._id,
-      displayName: u.displayName ?? u.name,
-      image: u.image,
-      score: u.score,
-    }));
+    const [users, settings, bonusPredictions] = await Promise.all([
+      ctx.db.query("users").withIndex("by_score").order("desc").collect(),
+      ctx.db.query("tournamentSettings").first(),
+      ctx.db.query("bonusPredictions").collect(),
+    ]);
+
+    const topScorerIds = new Set(settings?.actualTopScorers ?? []);
+    const mostGoalsTeamIds = new Set(settings?.actualMostGoalsTeams ?? []);
+    const leastConcededTeamIds = new Set(settings?.actualLeastConcededTeams ?? []);
+
+    const bonusByUserId = new Map(bonusPredictions.map((b) => [b.userId, b]));
+
+    return users.map((u) => {
+      const b = bonusByUserId.get(u._id);
+      let bonusPoints = 0;
+      if (b) {
+        if (b.topScorer && topScorerIds.has(b.topScorer)) {
+          bonusPoints += BONUS_POINTS_PER_CATEGORY;
+        }
+        if (b.mostGoalsTeam && mostGoalsTeamIds.has(b.mostGoalsTeam)) {
+          bonusPoints += BONUS_POINTS_PER_CATEGORY;
+        }
+        if (b.leastConcededTeam && leastConcededTeamIds.has(b.leastConcededTeam)) {
+          bonusPoints += BONUS_POINTS_PER_CATEGORY;
+        }
+      }
+      return {
+        _id: u._id,
+        displayName: u.displayName ?? u.name,
+        image: u.image,
+        score: u.score,
+        bonusPoints,
+      };
+    });
   },
 });
 
