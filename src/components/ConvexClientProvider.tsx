@@ -8,9 +8,17 @@ import { esES } from "@clerk/localizations";
 
 const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
+const signInUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL ?? "/login";
+const signUpUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL ?? "/login";
+
 export function ConvexClientProvider({ children }: { children: ReactNode }) {
   return (
-    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY} localization={esES}>
+    <ClerkProvider
+      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      localization={esES}
+      signInUrl={signInUrl}
+      signUpUrl={signUpUrl}
+    >
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
         {children}
       </ConvexProviderWithClerk>

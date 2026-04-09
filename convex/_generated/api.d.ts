@@ -15,6 +15,7 @@ import type * as predictionsExport from "../predictionsExport.js";
 import type * as scoring from "../scoring.js";
 import type * as seedData from "../seedData.js";
 import type * as teams from "../teams.js";
+import type * as testSeed from "../testSeed.js";
 import type * as tournamentSettings from "../tournamentSettings.js";
 import type * as users from "../users.js";
 
@@ -32,6 +33,7 @@ declare const fullApi: ApiFromModules<{
   scoring: typeof scoring;
   seedData: typeof seedData;
   teams: typeof teams;
+  testSeed: typeof testSeed;
   tournamentSettings: typeof tournamentSettings;
   users: typeof users;
 }>;
