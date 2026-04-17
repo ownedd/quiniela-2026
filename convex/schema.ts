@@ -10,17 +10,30 @@ export default defineSchema({
     score: v.number(),
     clerkId: v.optional(v.string()),
     isAdmin: v.optional(v.boolean()),
+    groupId: v.optional(v.id("groups")),
+    groupRole: v.optional(v.union(v.literal("admin"), v.literal("member"))),
   })
     .index("by_clerkId", ["clerkId"])
-    .index("by_score", ["score"]),
+    .index("by_score", ["score"])
+    .index("by_groupId", ["groupId"]),
+
+  groups: defineTable({
+    name: v.string(),
+    slug: v.string(),
+    status: v.union(v.literal("active"), v.literal("archived")),
+    inviteCode: v.string(),
+    createdBy: v.optional(v.id("users")),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_inviteCode", ["inviteCode"]),
 
   tournamentSettings: defineTable({
-    predictionsLocked: v.boolean(),
-    lockedAt: v.optional(v.string()),
-    updatedBy: v.optional(v.id("users")),
     actualTopScorers: v.optional(v.array(v.id("players"))),
     actualMostGoalsTeams: v.optional(v.array(v.id("teams"))),
     actualLeastConcededTeams: v.optional(v.array(v.id("teams"))),
+    predictionsLocked: v.optional(v.boolean()),
+    lockedAt: v.optional(v.string()),
+    updatedBy: v.optional(v.id("users")),
     predictionsExportStorageId: v.optional(v.id("_storage")),
     predictionsExportFilename: v.optional(v.string()),
     predictionsExportGeneratedAt: v.optional(v.string()),
@@ -29,6 +42,20 @@ export default defineSchema({
     predictionsExportToken: v.optional(v.string()),
     predictionsExportScheduledId: v.optional(v.id("_scheduled_functions")),
   }),
+
+  groupSettings: defineTable({
+    groupId: v.id("groups"),
+    predictionsLocked: v.boolean(),
+    lockedAt: v.optional(v.string()),
+    updatedBy: v.optional(v.id("users")),
+    predictionsExportStorageId: v.optional(v.id("_storage")),
+    predictionsExportFilename: v.optional(v.string()),
+    predictionsExportGeneratedAt: v.optional(v.string()),
+    predictionsExportStatus: v.optional(v.union(v.literal("generating"), v.literal("ready"), v.literal("error"))),
+    predictionsExportError: v.optional(v.string()),
+    predictionsExportToken: v.optional(v.string()),
+    predictionsExportScheduledId: v.optional(v.id("_scheduled_functions")),
+  }).index("by_groupId", ["groupId"]),
 
   teams: defineTable({
     name: v.string(),

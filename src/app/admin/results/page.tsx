@@ -67,13 +67,15 @@ function LocalDateTime({
 
 export default function AdminResultsPage() {
   const { user, isLoaded } = useUser();
-  const isAdmin = useQuery(api.users.isAdmin, isLoaded && user ? {} : "skip");
-  const canBootstrap = useQuery(api.users.canBootstrapAdmin, isLoaded && user ? {} : "skip");
+  const viewer = useQuery(api.users.getViewerContext, isLoaded && user ? {} : "skip");
+  const hasGroup = viewer?.hasGroup ?? false;
+  const isAdmin = useQuery(api.users.isAdmin, isLoaded && user && hasGroup ? {} : "skip");
+  const canBootstrap = useQuery(api.users.canBootstrapAdmin, isLoaded && user && hasGroup ? {} : "skip");
   const bootstrapAsFirstAdmin = useMutation(api.users.bootstrapAsFirstAdmin);
-  const settings = useQuery(api.tournamentSettings.get);
-  const matchesByGroup = (useQuery(api.matches.byGroup) ?? {}) as Record<string, AdminMatchView[]>;
-  const teams = (useQuery(api.teams.list) ?? []) as TeamOption[];
-  const players = (useQuery(api.bonusPredictions.getPlayers) ?? []) as PlayerOption[];
+  const settings = useQuery(api.tournamentSettings.get, hasGroup ? {} : "skip");
+  const matchesByGroup = (useQuery(api.matches.byGroup, hasGroup ? {} : "skip") ?? {}) as Record<string, AdminMatchView[]>;
+  const teams = (useQuery(api.teams.list, hasGroup ? {} : "skip") ?? []) as TeamOption[];
+  const players = (useQuery(api.bonusPredictions.getPlayers, hasGroup ? {} : "skip") ?? []) as PlayerOption[];
   const setPredictionsLocked = useMutation(api.tournamentSettings.setPredictionsLocked);
   const setResult = useMutation(api.matches.setResult);
   const addPlayer = useMutation(api.bonusPredictions.addPlayer);
@@ -208,8 +210,8 @@ export default function AdminResultsPage() {
               </button>
             </div>
           )}
-          <Link href="/" className="inline-flex items-center gap-2 text-gold hover:text-gold-light font-medium text-sm transition-colors">
-            Volver al inicio
+          <Link href="/dashboard" className="inline-flex items-center gap-2 text-gold hover:text-gold-light font-medium text-sm transition-colors">
+            Volver al dashboard
           </Link>
         </div>
       </div>
@@ -226,6 +228,7 @@ export default function AdminResultsPage() {
       <div>
         <h2 className="text-2xl sm:text-3xl font-bold font-display uppercase tracking-wide">Panel de Administracion</h2>
         <p className="text-gray-400 text-sm mt-1">Bloquea predicciones y carga resultados oficiales</p>
+        {viewer?.group?.name ? <p className="text-sm text-gold/80 mt-2">Grupo: {viewer.group.name}</p> : null}
       </div>
 
       <div className="glass-card p-4 sm:p-5">

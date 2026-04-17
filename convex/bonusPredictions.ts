@@ -2,20 +2,12 @@ import { mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { v } from "convex/values";
-
-async function getCurrentUser(ctx: QueryCtx | MutationCtx) {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) {
-    return null;
-  }
-
-  const user = await ctx.db
-    .query("users")
-    .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
-    .unique();
-
-  return user;
-}
+import {
+  getCurrentUser,
+  isGroupAdmin,
+  requireGroupAdmin,
+  requireGroupMember,
+} from "./authHelpers";
 
 type BonusPredictionDoc = Doc<"bonusPredictions"> | null;
 
@@ -116,10 +108,17 @@ export const getByUserId = query({
   handler: async (ctx, { userId }) => {
     const caller = await getCurrentUser(ctx);
     if (!caller) return null;
-    const isOwner = caller._id === userId;
-    const isAdmin = caller.isAdmin === true;
+    const targetUser = await ctx.db.get(userId);
+    if (!targetUser) return null;
 
-    if (!isOwner && !isAdmin) return null;
+    const isOwner = caller._id === userId;
+    const isAdmin = isGroupAdmin(caller);
+    const sameGroup =
+      caller.groupId !== undefined &&
+      targetUser.groupId !== undefined &&
+      caller.groupId === targetUser.groupId;
+
+    if (!sameGroup || (!isOwner && !isAdmin)) return null;
 
     const prediction = await ctx.db
       .query("bonusPredictions")
@@ -136,10 +135,7 @@ export const addPlayer = mutation({
     teamId: v.id("teams"),
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user?.isAdmin) {
-      throw new Error("Solo administradores pueden agregar jugadores");
-    }
+    await requireGroupAdmin(ctx);
 
     const team = await ctx.db.get(args.teamId);
     if (!team) throw new Error("Equipo no encontrado");
@@ -163,19 +159,18 @@ export const submit = mutation({
     leastConcededTeam: v.optional(v.id("teams")),
   },
   handler: async (ctx, args) => {
-    const settings = await ctx.db.query("tournamentSettings").first();
+    const membership = await requireGroupMember(ctx);
+    const settings = await ctx.db
+      .query("groupSettings")
+      .withIndex("by_groupId", (q) => q.eq("groupId", membership.group._id))
+      .unique();
     if (settings?.predictionsLocked) {
       throw new Error("Las predicciones están cerradas desde el inicio del Mundial");
     }
 
-    const user = await getCurrentUser(ctx);
-    if (!user) {
-      throw new Error("Sin autenticación");
-    }
-
     const existing = await ctx.db
       .query("bonusPredictions")
-      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .withIndex("by_userId", (q) => q.eq("userId", membership.user._id))
       .unique();
 
     const payload = {
@@ -188,7 +183,7 @@ export const submit = mutation({
       await ctx.db.patch(existing._id, payload);
     } else {
       await ctx.db.insert("bonusPredictions", {
-        userId: user._id,
+        userId: membership.user._id,
         ...payload,
       });
     }

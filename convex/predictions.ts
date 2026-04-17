@@ -1,22 +1,24 @@
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { recalculateLeaderboardInMutation } from "./scoring";
+import { getCurrentUser, isGroupAdmin, requireGroupMember } from "./authHelpers";
 
 export const getByUserId = query({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
-
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const caller = await getCurrentUser(ctx);
     if (!caller) return [];
 
+    const targetUser = await ctx.db.get(userId);
+    if (!targetUser) return [];
+
     const isOwner = caller._id === userId;
-    const isAdmin = caller.isAdmin === true;
-    if (!isOwner && !isAdmin) return [];
+    const isAdmin = isGroupAdmin(caller);
+    const sameGroup =
+      caller.groupId !== undefined &&
+      targetUser.groupId !== undefined &&
+      caller.groupId === targetUser.groupId;
+    if (!sameGroup || (!isOwner && !isAdmin)) return [];
 
     return await ctx.db
       .query("predictions")
@@ -28,34 +30,31 @@ export const getByUserId = query({
 export const getMine = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-
-    if (!user) return [];
+    const membership = await requireGroupMember(ctx);
 
     return await ctx.db
       .query("predictions")
-      .withIndex("by_user_match", (q) => q.eq("userId", user._id))
+      .withIndex("by_user_match", (q) => q.eq("userId", membership.user._id))
       .collect();
   },
 });
 
 export const getAllForExport = internalQuery({
-  args: {},
-  handler: async (ctx) => {
+  args: { groupId: v.id("groups") },
+  handler: async (ctx, { groupId }) => {
     const [users, predictions, bonusPredictions, matches, teams, players] = await Promise.all([
-      ctx.db.query("users").withIndex("by_score").order("desc").collect(),
+      ctx.db
+        .query("users")
+        .withIndex("by_groupId", (q) => q.eq("groupId", groupId))
+        .collect(),
       ctx.db.query("predictions").collect(),
       ctx.db.query("bonusPredictions").collect(),
       ctx.db.query("matches").order("asc").collect(),
       ctx.db.query("teams").collect(),
       ctx.db.query("players").collect(),
     ]);
+    const orderedUsers = [...users].sort((a, b) => b.score - a.score);
+    const allowedUserIds = new Set(orderedUsers.map((user) => user._id));
 
     const teamMap = new Map(teams.map((team) => [team._id, team]));
     const playerMap = new Map(players.map((player) => [player._id, player]));
@@ -74,19 +73,23 @@ export const getAllForExport = internalQuery({
       });
 
     return {
-      users: users.map((user) => ({
+      users: orderedUsers.map((user) => ({
         _id: user._id,
         displayName: user.displayName ?? user.name,
         score: user.score,
       })),
       matches: enrichedMatches,
-      predictions: predictions.map((prediction) => ({
+      predictions: predictions
+        .filter((prediction) => allowedUserIds.has(prediction.userId))
+        .map((prediction) => ({
         userId: prediction.userId,
         matchId: prediction.matchId,
         homeScore: prediction.homeScore,
         awayScore: prediction.awayScore,
       })),
-      bonusPredictions: bonusPredictions.map((prediction) => {
+      bonusPredictions: bonusPredictions
+        .filter((prediction) => allowedUserIds.has(prediction.userId))
+        .map((prediction) => {
         const topScorer = prediction.topScorer
           ? playerMap.get(prediction.topScorer)
           : null;
@@ -138,29 +141,19 @@ export const submit = mutation({
     awayScore: v.number(),
   },
   handler: async (ctx, args) => {
-    const settings = await ctx.db.query("tournamentSettings").first();
+    const membership = await requireGroupMember(ctx);
+    const settings = await ctx.db
+      .query("groupSettings")
+      .withIndex("by_groupId", (q) => q.eq("groupId", membership.group._id))
+      .unique();
     if (settings?.predictionsLocked) {
       throw new Error("Las predicciones están cerradas desde el inicio del Mundial");
-    }
-
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Sin autenticación");
-    }
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-
-    if (!user) {
-      throw new Error("Usuario no sincronizado");
     }
 
     const existing = await ctx.db
       .query("predictions")
       .withIndex("by_user_match", (q) =>
-        q.eq("userId", user._id).eq("matchId", args.matchId)
+        q.eq("userId", membership.user._id).eq("matchId", args.matchId)
       )
       .first();
 
@@ -171,7 +164,7 @@ export const submit = mutation({
       });
     } else {
       await ctx.db.insert("predictions", {
-        userId: user._id,
+        userId: membership.user._id,
         matchId: args.matchId,
         homeScore: args.homeScore,
         awayScore: args.awayScore,

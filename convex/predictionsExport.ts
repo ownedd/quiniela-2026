@@ -71,10 +71,11 @@ function formatGeneratedAtLocal(now: Date) {
 export const generatePredictionsExport = internalAction({
   args: {
     token: v.string(),
+    groupId: v.id("groups"),
   },
-  handler: async (ctx, { token }) => {
+  handler: async (ctx, { token, groupId }) => {
     try {
-      const data = await ctx.runQuery(internal.predictions.getAllForExport);
+      const data = await ctx.runQuery(internal.predictions.getAllForExport, { groupId });
       const workbook = new ExcelJS.Workbook();
       workbook.creator = "quiniela";
       workbook.created = new Date();
@@ -213,6 +214,7 @@ export const generatePredictionsExport = internalAction({
 
       await ctx.runMutation(internal.tournamentSettings.completePredictionsExport, {
         token,
+        groupId,
         storageId,
         filename: EXPORT_FILENAME,
         generatedAt: generatedAt.toISOString(),
@@ -223,6 +225,7 @@ export const generatePredictionsExport = internalAction({
 
       await ctx.runMutation(internal.tournamentSettings.failPredictionsExport, {
         token,
+        groupId,
         error: message,
       });
     }

@@ -1,5 +1,12 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import {
+  getCurrentUser as getAuthenticatedUser,
+  getUserRole,
+  isGroupAdmin,
+  requireCurrentUser,
+} from "./authHelpers";
+
 const BONUS_POINTS_PER_CATEGORY = 10;
 
 export const store = mutation({
@@ -35,6 +42,7 @@ export const store = mutation({
       image,
       clerkId: identity.subject,
       score: 0,
+      groupRole: undefined,
     });
   },
 });
@@ -42,71 +50,86 @@ export const store = mutation({
 export const isAdmin = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return false;
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    return user?.isAdmin ?? false;
+    const user = await getAuthenticatedUser(ctx);
+    if (!user?.groupId) return false;
+    return isGroupAdmin(user);
   },
 });
 
 export const canBootstrapAdmin = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return false;
-    const admins = await ctx.db.query("users").collect();
-    return admins.filter((u) => u.isAdmin).length === 0;
+    const user = await getAuthenticatedUser(ctx);
+    if (!user?.groupId) return false;
+    const groupUsers = await ctx.db
+      .query("users")
+      .withIndex("by_groupId", (q) => q.eq("groupId", user.groupId))
+      .collect();
+    return groupUsers.filter((u) => isGroupAdmin(u)).length === 0;
   },
 });
 
 export const bootstrapAsFirstAdmin = mutation({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Sin autenticación");
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const user = await requireCurrentUser(ctx);
     if (!user) throw new Error("Usuario no sincronizado");
-    const admins = await ctx.db.query("users").collect();
-    const adminCount = admins.filter((u) => u.isAdmin).length;
+    if (!user.groupId) throw new Error("Debes pertenecer a un grupo para ser administrador");
+
+    const groupUsers = await ctx.db
+      .query("users")
+      .withIndex("by_groupId", (q) => q.eq("groupId", user.groupId))
+      .collect();
+    const adminCount = groupUsers.filter((u) => isGroupAdmin(u)).length;
     if (adminCount > 0) throw new Error("Ya existen administradores");
-    await ctx.db.patch(user._id, { isAdmin: true });
+    await ctx.db.patch(user._id, { groupRole: "admin", isAdmin: true });
   },
 });
 
 export const setAdmin = mutation({
   args: { userId: v.id("users"), isAdmin: v.boolean() },
   handler: async (ctx, { userId, isAdmin }) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Sin autenticación");
-    const caller = await ctx.db
+    const caller = await requireCurrentUser(ctx);
+    const targetUser = await ctx.db.get(userId);
+    if (!targetUser) throw new Error("Usuario no encontrado");
+
+    if (!caller.groupId || !targetUser.groupId || caller.groupId !== targetUser.groupId) {
+      throw new Error("Solo puedes modificar usuarios de tu mismo grupo");
+    }
+
+    const groupUsers = await ctx.db
       .query("users")
-      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    const admins = await ctx.db.query("users").collect();
-    const adminCount = admins.filter((u) => u.isAdmin).length;
+      .withIndex("by_groupId", (q) => q.eq("groupId", caller.groupId))
+      .collect();
+    const adminCount = groupUsers.filter((u) => isGroupAdmin(u)).length;
+
     if (adminCount === 0) {
       if (caller?._id !== userId) throw new Error("Solo puedes promoverte a ti mismo como primer admin");
     } else {
-      if (!caller?.isAdmin) throw new Error("Solo administradores pueden cambiar roles");
+      if (!isGroupAdmin(caller)) throw new Error("Solo administradores pueden cambiar roles");
     }
-    await ctx.db.patch(userId, { isAdmin });
+    await ctx.db.patch(userId, { isAdmin, groupRole: isAdmin ? "admin" : "member" });
   },
 });
 
 export const leaderboard = query({
   args: {},
   handler: async (ctx) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+    if (!currentUser?.groupId) {
+      return [];
+    }
+
     const [users, settings, bonusPredictions] = await Promise.all([
-      ctx.db.query("users").withIndex("by_score").order("desc").collect(),
+      ctx.db
+        .query("users")
+        .withIndex("by_groupId", (q) => q.eq("groupId", currentUser.groupId!))
+        .collect(),
       ctx.db.query("tournamentSettings").first(),
       ctx.db.query("bonusPredictions").collect(),
     ]);
+
+    const orderedUsers = [...users].sort((a, b) => b.score - a.score);
 
     const topScorerIds = new Set(settings?.actualTopScorers ?? []);
     const mostGoalsTeamIds = new Set(settings?.actualMostGoalsTeams ?? []);
@@ -114,7 +137,7 @@ export const leaderboard = query({
 
     const bonusByUserId = new Map(bonusPredictions.map((b) => [b.userId, b]));
 
-    return users.map((u) => {
+    return orderedUsers.map((u) => {
       const b = bonusByUserId.get(u._id);
       let bonusPoints = 0;
       if (b) {
@@ -142,35 +165,68 @@ export const leaderboard = query({
 export const getCurrentUser = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
-    return await ctx.db
-      .query("users")
-      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return null;
+
+    const group = user.groupId ? await ctx.db.get(user.groupId) : null;
+
+    return {
+      ...user,
+      groupName: group?.name ?? null,
+      groupSlug: group?.slug ?? null,
+      groupRole: getUserRole(user),
+      isAdmin: isGroupAdmin(user),
+    };
+  },
+});
+
+export const getViewerContext = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      return {
+        isAuthenticated: false,
+        hasGroup: false,
+        isAdmin: false,
+        user: null,
+        group: null,
+      };
+    }
+
+    const group = user.groupId ? await ctx.db.get(user.groupId) : null;
+
+    return {
+      isAuthenticated: true,
+      hasGroup: Boolean(group),
+      isAdmin: Boolean(group && isGroupAdmin(user)),
+      user: {
+        _id: user._id,
+        name: user.name,
+        displayName: user.displayName ?? user.name,
+        image: user.image ?? null,
+        groupRole: getUserRole(user),
+      },
+      group: group
+        ? {
+            _id: group._id,
+            name: group.name,
+            slug: group.slug,
+            status: group.status,
+          }
+        : null,
+    };
   },
 });
 
 export const updateDisplayName = mutation({
   args: { displayName: v.string() },
   handler: async (ctx, { displayName }) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Sin autenticación");
-    }
+    const user = await requireCurrentUser(ctx);
 
     const trimmed = displayName.trim();
     if (trimmed.length > 0 && (trimmed.length < 2 || trimmed.length > 30)) {
       throw new Error("El nombre debe tener entre 2 y 30 caracteres");
-    }
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-
-    if (!user) {
-      throw new Error("Usuario no encontrado");
     }
 
     await ctx.db.patch(user._id, {

@@ -23,6 +23,35 @@ function randomScores(userIndex: number, matchIndex: number): { homeScore: numbe
 export const seedUsersAndPredictions = mutation({
   args: {},
   handler: async (ctx) => {
+    let defaultGroup = await ctx.db
+      .query("groups")
+      .withIndex("by_slug", (q) => q.eq("slug", "default"))
+      .unique();
+
+    if (!defaultGroup) {
+      const groupId = await ctx.db.insert("groups", {
+        name: "Grupo Demo",
+        slug: "default",
+        inviteCode: "DEMO2026",
+        status: "active",
+        createdBy: undefined,
+      });
+      defaultGroup = (await ctx.db.get(groupId))!;
+      await ctx.db.insert("groupSettings", {
+        groupId,
+        predictionsLocked: false,
+        lockedAt: undefined,
+        updatedBy: undefined,
+        predictionsExportStorageId: undefined,
+        predictionsExportFilename: undefined,
+        predictionsExportGeneratedAt: undefined,
+        predictionsExportStatus: undefined,
+        predictionsExportError: undefined,
+        predictionsExportToken: undefined,
+        predictionsExportScheduledId: undefined,
+      });
+    }
+
     const allUsers = await ctx.db.query("users").collect();
     const seedUsers = allUsers.filter((u) => u.clerkId?.startsWith(SEED_CLERK_PREFIX));
 
@@ -67,6 +96,8 @@ export const seedUsersAndPredictions = mutation({
         score: 0,
         clerkId: `${SEED_CLERK_PREFIX}${String(i).padStart(2, "0")}`,
         isAdmin: false,
+        groupId: defaultGroup._id,
+        groupRole: "member",
       });
       userIds.push(id);
     }

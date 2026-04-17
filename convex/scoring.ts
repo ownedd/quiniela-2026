@@ -1,6 +1,7 @@
 import { internalMutation } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
+import { ensureGlobalTournamentSettings } from "./tournamentSettings";
 
 const BONUS_POINTS = 10;
 
@@ -54,30 +55,12 @@ async function recalculateBonusResultsInMutation(ctx: MutationCtx) {
   const scorerEntries = Array.from(scorerGoals.entries());
   const actualTopScorers = scorerEntries.length === 0 ? ([] as Id<"players">[]) : (pickAllLeaders(scorerEntries, "max") as Id<"players">[]);
 
-  const settings = await ctx.db.query("tournamentSettings").first();
-  if (settings) {
-    await ctx.db.patch(settings._id, {
-      actualTopScorers,
-      actualMostGoalsTeams,
-      actualLeastConcededTeams,
-    });
-  } else {
-    await ctx.db.insert("tournamentSettings", {
-      predictionsLocked: false,
-      lockedAt: undefined,
-      updatedBy: undefined,
-      actualTopScorers,
-      actualMostGoalsTeams,
-      actualLeastConcededTeams,
-      predictionsExportStorageId: undefined,
-      predictionsExportFilename: undefined,
-      predictionsExportGeneratedAt: undefined,
-      predictionsExportStatus: undefined,
-      predictionsExportError: undefined,
-      predictionsExportToken: undefined,
-      predictionsExportScheduledId: undefined,
-    });
-  }
+  const settings = await ensureGlobalTournamentSettings(ctx);
+  await ctx.db.patch(settings._id, {
+    actualTopScorers,
+    actualMostGoalsTeams,
+    actualLeastConcededTeams,
+  });
 
   return {
     actualTopScorers,

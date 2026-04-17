@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { useLayoutContext } from "@/components/LayoutClient";
 
 const baseTabs = [
-  { href: "/#ranking", label: "Posiciones", icon: BarChart3 },
+  { href: "/dashboard", label: "Posiciones", icon: BarChart3 },
   { href: "/predictions", label: "Predicciones", icon: Trophy },
   { href: "/profile", label: "Perfil", icon: User },
 ];
@@ -17,7 +17,12 @@ export function BottomNav() {
   const { isAdmin } = useLayoutContext();
 
   const adminTab = { href: "/admin/results", label: "Admin", icon: ShieldCheck };
-  const tabs = isAdmin ? [...baseTabs, adminTab] : baseTabs;
+  const { hasGroup } = useLayoutContext();
+  const tabs = hasGroup ? (isAdmin ? [...baseTabs, adminTab] : baseTabs) : [];
+
+  if (tabs.length === 0) {
+    return null;
+  }
 
   return (
     <nav
@@ -27,7 +32,7 @@ export function BottomNav() {
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
         {tabs.map(({ href, label, icon: Icon }) => {
           const isActive =
-            href === "/#ranking" ? pathname === "/" : pathname.startsWith(href.split("#")[0]);
+            pathname.startsWith(href.split("#")[0]);
 
           return (
             <Link

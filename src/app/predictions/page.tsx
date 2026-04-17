@@ -98,19 +98,21 @@ function LocalDateTime({
 
 export default function Predictions() {
   const { user, isLoaded } = useUser();
-  const matchesByGroup = (useQuery(api.matches.byGroup) ?? {}) as Record<string, MatchView[]>;
-  const teams = (useQuery(api.teams.list) ?? []) as TeamOption[];
-  const players = (useQuery(api.bonusPredictions.getPlayers) ?? []) as PlayerOption[];
-  const settings = useQuery(api.tournamentSettings.get);
-  const leaderboard = (useQuery(api.users.leaderboard) ?? []) as LeaderboardUser[];
+  const viewer = useQuery(api.users.getViewerContext, isLoaded && user ? {} : "skip");
+  const hasGroup = viewer?.hasGroup ?? false;
+  const matchesByGroup = (useQuery(api.matches.byGroup, hasGroup ? {} : "skip") ?? {}) as Record<string, MatchView[]>;
+  const teams = (useQuery(api.teams.list, hasGroup ? {} : "skip") ?? []) as TeamOption[];
+  const players = (useQuery(api.bonusPredictions.getPlayers, hasGroup ? {} : "skip") ?? []) as PlayerOption[];
+  const settings = useQuery(api.tournamentSettings.get, hasGroup ? {} : "skip");
+  const leaderboard = (useQuery(api.users.leaderboard, hasGroup ? {} : "skip") ?? []) as LeaderboardUser[];
   const submitPrediction = useMutation(api.predictions.submit);
   const submitBonusPrediction = useMutation(api.bonusPredictions.submit);
   const userPredictions = (
-    useQuery(api.predictions.getMine, isLoaded && user ? {} : "skip") ?? []
+    useQuery(api.predictions.getMine, isLoaded && user && hasGroup ? {} : "skip") ?? []
   ) as MatchPrediction[];
   const userBonusPrediction = useQuery(
     api.bonusPredictions.getMine,
-    isLoaded && user ? {} : "skip"
+    isLoaded && user && hasGroup ? {} : "skip"
   ) as BonusPredictionView;
   const [saving, setSaving] = useState<string | null>(null);
   const [savingBonus, setSavingBonus] = useState(false);
@@ -320,6 +322,7 @@ export default function Predictions() {
       <div>
         <h2 className="text-2xl sm:text-3xl font-bold font-display uppercase tracking-wide">Mis Predicciones</h2>
         <p className="text-gray-400 text-sm mt-1">Define tus resultados antes del inicio del mundial</p>
+        {viewer?.group?.name ? <p className="text-sm text-gold/80 mt-2">Grupo: {viewer.group.name}</p> : null}
       </div>
 
       <BonusPredictionsEditor

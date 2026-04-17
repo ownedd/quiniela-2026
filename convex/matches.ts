@@ -4,6 +4,7 @@ import type { MutationCtx } from "./_generated/server";
 import { recalculateLeaderboardInMutation } from "./scoring";
 import { players, teams, matches } from "./seedData";
 import type { Doc, Id } from "./_generated/dataModel";
+import { requireGroupAdmin } from "./authHelpers";
 
 type GroupedMatch = Doc<"matches"> & {
   homeTeamDetails: { name: string; code: string; flagUrl?: string } | null;
@@ -132,13 +133,7 @@ export const seed = mutation({
 });
 
 async function requireAdmin(ctx: MutationCtx) {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) throw new Error("Sin autenticación");
-  const user = await ctx.db
-    .query("users")
-    .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
-    .unique();
-  if (!user?.isAdmin) throw new Error("Solo administradores pueden cargar resultados");
+  const { user } = await requireGroupAdmin(ctx);
   return user;
 }
 

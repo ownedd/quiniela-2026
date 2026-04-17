@@ -13,11 +13,15 @@ import Link from "next/link";
 type LayoutContextValue = {
   isAdmin: boolean | undefined;
   predictionsLocked: boolean;
+  hasGroup: boolean;
+  groupName?: string | null;
 };
 
 const LayoutContext = createContext<LayoutContextValue>({
   isAdmin: undefined,
   predictionsLocked: false,
+  hasGroup: false,
+  groupName: null,
 });
 
 export function useLayoutContext() {
@@ -35,12 +39,15 @@ export function LayoutClient({ children }: { children: React.ReactNode }) {
 }
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
-  const isAdmin = useQuery(api.users.isAdmin);
-  const settings = useQuery(api.tournamentSettings.get);
+  const viewer = useQuery(api.users.getViewerContext);
+  const settings = useQuery(api.tournamentSettings.get, viewer?.hasGroup ? {} : "skip");
+  const isAdmin = viewer?.isAdmin;
+  const hasGroup = viewer?.hasGroup ?? false;
+  const groupName = viewer?.group?.name ?? null;
   const predictionsLocked = settings?.predictionsLocked ?? false;
 
   return (
-    <LayoutContext.Provider value={{ isAdmin, predictionsLocked }}>
+    <LayoutContext.Provider value={{ isAdmin, predictionsLocked, hasGroup, groupName }}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6 md:py-8">
         <header className="flex items-center justify-between gap-4 mb-6 sm:mb-8 md:mb-12 border-b border-white/5 pb-4 sm:pb-6 md:pb-8">
           <Link href="/" className="group">
@@ -51,26 +58,41 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
           <div className="flex items-center gap-4 sm:gap-6 md:gap-8">
             <nav className="hidden md:flex gap-6 font-body font-medium text-gray-400">
-              <Link href="/" className="nav-link hover:text-gold transition-colors">
-                Inicio
-              </Link>
-              <Link href="/predictions" className="nav-link hover:text-gold transition-colors">
-                {predictionsLocked ? "Predicciones" : "Mis Predicciones"}
-              </Link>
-              <Link href="/profile" className="nav-link hover:text-gold transition-colors">
-                Perfil
-              </Link>
-              {isAdmin && (
-                <Link href="/admin/results" className="nav-link hover:text-gold-light transition-colors">
-                  Admin
+              {hasGroup ? (
+                <>
+                  <Link href="/dashboard" className="nav-link hover:text-gold transition-colors">
+                    Dashboard
+                  </Link>
+                  <Link href="/predictions" className="nav-link hover:text-gold transition-colors">
+                    {predictionsLocked ? "Predicciones" : "Mis Predicciones"}
+                  </Link>
+                  <Link href="/profile" className="nav-link hover:text-gold transition-colors">
+                    Perfil
+                  </Link>
+                  {isAdmin && (
+                    <Link href="/admin/results" className="nav-link hover:text-gold-light transition-colors">
+                      Admin
+                    </Link>
+                  )}
+                </>
+              ) : (
+                <Link href="/" className="nav-link hover:text-gold transition-colors">
+                  Home
                 </Link>
               )}
             </nav>
 
             <div className="hidden md:block h-6 w-px bg-white/10" />
 
+            {hasGroup && groupName ? (
+              <div className="hidden md:block text-right">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-gold/60 font-display">Grupo</p>
+                <p className="text-sm text-gray-300 font-medium">{groupName}</p>
+              </div>
+            ) : null}
+
             <SignedIn>
-              <UserButton afterSignOutUrl="/" />
+              <UserButton afterSignOutUrl="/login" />
             </SignedIn>
             <SignedOut>
               <SignInButton mode="modal">

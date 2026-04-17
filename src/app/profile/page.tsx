@@ -58,10 +58,10 @@ export default function ProfilePage() {
           <h2 className="text-xl font-bold mb-2 font-display uppercase">Perfil</h2>
           <p className="text-gray-400 mb-6">Inicia sesión para editar tu nombre mostrado en la tabla.</p>
           <Link
-            href="/"
+            href="/dashboard"
             className="inline-flex items-center gap-2 text-gold hover:text-gold-light font-medium transition-colors"
           >
-            Volver al inicio
+            Volver al dashboard
           </Link>
         </div>
       </div>
@@ -73,6 +73,9 @@ export default function ProfilePage() {
       <div className="flex flex-col gap-2">
         <h2 className="text-2xl sm:text-3xl font-bold font-display uppercase tracking-wide">Mi Perfil</h2>
         <p className="text-gray-400 font-medium">Personaliza el nombre que aparece en la tabla de posiciones</p>
+        {convexUser?.groupName ? (
+          <p className="text-sm text-gold/80">Grupo actual: {convexUser.groupName}</p>
+        ) : null}
       </div>
 
       <div className="glass-card-gold p-4 sm:p-6 md:p-8 max-w-md w-full">
