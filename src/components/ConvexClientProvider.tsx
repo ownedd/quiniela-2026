@@ -10,6 +10,8 @@ const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 const signInUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL ?? "/login";
 const signUpUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL ?? "/login";
+const signInFallbackRedirectUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL ?? "/";
+const signUpFallbackRedirectUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL ?? "/";
 
 export function ConvexClientProvider({ children }: { children: ReactNode }) {
   return (
@@ -18,6 +20,8 @@ export function ConvexClientProvider({ children }: { children: ReactNode }) {
       localization={esES}
       signInUrl={signInUrl}
       signUpUrl={signUpUrl}
+      signInFallbackRedirectUrl={signInFallbackRedirectUrl}
+      signUpFallbackRedirectUrl={signUpFallbackRedirectUrl}
     >
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
         {children}

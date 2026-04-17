@@ -19,11 +19,6 @@ export default clerkMiddleware(
     const isLoginPage = pathname === "/login";
     const isJoinGroupPage = pathname.startsWith("/join-group");
 
-    if (isRootPage && !userId) {
-      const url = new URL("/login", req.url);
-      return NextResponse.redirect(url);
-    }
-
     if ((isRootPage || isLoginPage) && userId) {
       const token = await getToken({ template: "convex" });
       if (!token) {
