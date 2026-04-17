@@ -92,7 +92,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             ) : null}
 
             <SignedIn>
-              <UserButton afterSignOutUrl="/login" />
+              <UserButton afterSignOutUrl="/" />
             </SignedIn>
             <SignedOut>
               <SignInButton mode="modal">

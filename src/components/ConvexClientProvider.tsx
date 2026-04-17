@@ -8,8 +8,8 @@ import { esES } from "@clerk/localizations";
 
 const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-const signInUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL ?? "/login";
-const signUpUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL ?? "/login";
+const signInUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL ?? "/";
+const signUpUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL ?? "/";
 const signInFallbackRedirectUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL ?? "/";
 const signUpFallbackRedirectUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL ?? "/";
 

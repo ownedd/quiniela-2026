@@ -8,8 +8,8 @@ const isPublicRoute = createRouteMatcher([
   "/login(.*)",
 ]);
 
-const signInUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL ?? "/login";
-const signUpUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL ?? "/login";
+const signInUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL ?? "/";
+const signUpUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL ?? "/";
 
 export default clerkMiddleware(
   async (auth, req) => {
