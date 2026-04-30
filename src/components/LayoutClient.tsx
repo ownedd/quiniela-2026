@@ -70,7 +70,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             <div className="hidden md:block h-6 w-px bg-white/10" />
 
             <SignedIn>
-              <UserButton afterSignOutUrl="/" />
+              <UserButton afterSignOutUrl="/login" />
             </SignedIn>
             <SignedOut>
               <SignInButton mode="modal">
