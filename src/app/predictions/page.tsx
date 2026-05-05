@@ -82,13 +82,7 @@ type BonusPredictionView = {
   } | null;
 } | null;
 
-function LocalDateTime({
-  value,
-  options,
-}: {
-  value: string;
-  options?: Intl.DateTimeFormatOptions;
-}) {
+function LocalDateTime({ value, options }: { value: string; options?: Intl.DateTimeFormatOptions }) {
   return (
     <time dateTime={value} suppressHydrationWarning>
       {new Date(value).toLocaleString("es-MX", options)}
@@ -105,13 +99,8 @@ export default function Predictions() {
   const leaderboard = (useQuery(api.users.leaderboard) ?? []) as LeaderboardUser[];
   const submitPrediction = useMutation(api.predictions.submit);
   const submitBonusPrediction = useMutation(api.bonusPredictions.submit);
-  const userPredictions = (
-    useQuery(api.predictions.getMine, isLoaded && user ? {} : "skip") ?? []
-  ) as MatchPrediction[];
-  const userBonusPrediction = useQuery(
-    api.bonusPredictions.getMine,
-    isLoaded && user ? {} : "skip"
-  ) as BonusPredictionView;
+  const userPredictions = (useQuery(api.predictions.getMine, isLoaded && user ? {} : "skip") ?? []) as MatchPrediction[];
+  const userBonusPrediction = useQuery(api.bonusPredictions.getMine, isLoaded && user ? {} : "skip") as BonusPredictionView;
   const [saving, setSaving] = useState<string | null>(null);
   const [savingBonus, setSavingBonus] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<Id<"users"> | null>(null);
@@ -129,16 +118,9 @@ export default function Predictions() {
   });
 
   const predictionsLocked = settings?.predictionsLocked ?? false;
-  const predictionsExport = useQuery(
-    api.tournamentSettings.getPredictionsExport,
-    isLoaded && user && predictionsLocked ? {} : "skip"
-  );
-  const selectedUserPredictions = (
-    useQuery(
-      api.predictions.getByUserId,
-      predictionsLocked && selectedUserId ? { userId: selectedUserId } : "skip"
-    ) ?? []
-  ) as MatchPrediction[];
+  const predictionsExport = useQuery(api.tournamentSettings.getPredictionsExport, isLoaded && user && predictionsLocked ? {} : "skip");
+  const selectedUserPredictions = (useQuery(api.predictions.getByUserId, predictionsLocked && selectedUserId ? { userId: selectedUserId } : "skip") ??
+    []) as MatchPrediction[];
   const selectedUserBonusPrediction = useQuery(
     api.bonusPredictions.getByUserId,
     predictionsLocked && selectedUserId ? { userId: selectedUserId } : "skip"
@@ -150,11 +132,7 @@ export default function Predictions() {
       mostGoalsTeam: userBonusPrediction?.mostGoalsTeam ?? null,
       leastConcededTeam: userBonusPrediction?.leastConcededTeam ?? null,
     });
-  }, [
-    userBonusPrediction?.topScorer,
-    userBonusPrediction?.mostGoalsTeam,
-    userBonusPrediction?.leastConcededTeam,
-  ]);
+  }, [userBonusPrediction?.topScorer, userBonusPrediction?.mostGoalsTeam, userBonusPrediction?.leastConcededTeam]);
 
   const playerOptions: SearchableSelectOption[] = players.map((player) => ({
     value: player._id,
@@ -217,9 +195,7 @@ export default function Predictions() {
       <div className="space-y-5 animate-slide-up">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold font-display uppercase tracking-wide">Predicciones</h2>
-          <p className="text-gray-400 text-sm mt-1">
-            Selecciona un participante para ver sus predicciones
-          </p>
+          <p className="text-gray-400 text-sm mt-1">Selecciona un participante para ver sus predicciones</p>
         </div>
 
         <div className="glass-card p-4 sm:p-5">
@@ -227,9 +203,7 @@ export default function Predictions() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <h3 className="font-bold font-display uppercase">Quinielas exportadas</h3>
-                <p className="text-sm text-gray-400 mt-1">
-                  Descarga el archivo consolidado con una hoja por participante.
-                </p>
+                <p className="text-sm text-gray-400 mt-1">Descarga el archivo consolidado con una hoja por participante.</p>
               </div>
               <a
                 href="/api/predictions/export"
@@ -242,9 +216,7 @@ export default function Predictions() {
           ) : predictionsExport?.status === "error" ? (
             <div>
               <h3 className="font-bold font-display uppercase text-red-400">Exportación no disponible</h3>
-              <p className="text-sm text-gray-400 mt-1">
-                {predictionsExport.error ?? "No se pudo generar quinielas.xlsx todavía."}
-              </p>
+              <p className="text-sm text-gray-400 mt-1">{predictionsExport.error ?? "No se pudo generar quinielas.xlsx todavía."}</p>
             </div>
           ) : (
             <div className="flex items-center gap-2 text-gold text-sm">
@@ -389,16 +361,10 @@ function BonusPredictionsEditor({
     <div className="glass-card-gold p-4 sm:p-5">
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>
-          <h3 className="font-display text-lg font-bold uppercase tracking-wide">
-            Predicciones especiales
-          </h3>
-          <p className="mt-1 text-sm text-gray-400">
-            Elige tu goleador, mejor ataque y mejor defensa del torneo.
-          </p>
+          <h3 className="font-display text-lg font-bold uppercase tracking-wide">Predicciones especiales</h3>
+          <p className="mt-1 text-sm text-gray-400">Elige tu goleador, mejor ataque y mejor defensa del torneo.</p>
         </div>
-        <div className="rounded-full border border-gold/15 bg-gold/10 px-3 py-1 text-[11px] font-display uppercase tracking-[0.2em] text-gold">
-          10 pts c/u
-        </div>
+        <div className="rounded-full border border-gold/15 bg-gold/10 px-3 py-1 text-[11px] font-display uppercase tracking-[0.2em] text-gold">10 pts c/u</div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -449,9 +415,7 @@ function BonusPredictionsEditor({
           disabled={!hasChanges || isSaving}
           className={cn(
             "inline-flex min-w-52 items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition-all cursor-pointer",
-            hasChanges && !isSaving
-              ? "btn-gold"
-              : "bg-white/5 text-gray-500 cursor-not-allowed",
+            hasChanges && !isSaving ? "btn-gold" : "bg-white/5 text-gray-500 cursor-not-allowed",
             isSaving && "bg-gold/50 text-[#0a0a0a] cursor-wait"
           )}
         >
@@ -473,12 +437,8 @@ function BonusPredictionsReadOnly({ prediction }: { prediction: BonusPredictionV
   return (
     <div className="glass-card-gold p-4 sm:p-5">
       <div className="mb-5">
-        <h3 className="font-display text-lg font-bold uppercase tracking-wide">
-          Predicciones especiales
-        </h3>
-        <p className="mt-1 text-sm text-gray-400">
-          Selecciones del participante para las categorias bonus.
-        </p>
+        <h3 className="font-display text-lg font-bold uppercase tracking-wide">Predicciones especiales</h3>
+        <p className="mt-1 text-sm text-gray-400">Selecciones del participante para las categorias bonus.</p>
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
@@ -503,37 +463,16 @@ function BonusPredictionsReadOnly({ prediction }: { prediction: BonusPredictionV
   );
 }
 
-function PredictionHighlightCard({
-  title,
-  value,
-  subtitle,
-  imageUrl,
-}: {
-  title: string;
-  value: string;
-  subtitle?: string;
-  imageUrl?: string | null;
-}) {
+function PredictionHighlightCard({ title, value, subtitle, imageUrl }: { title: string; value: string; subtitle?: string; imageUrl?: string | null }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-      <div className="mb-3 text-[11px] font-display uppercase tracking-[0.22em] text-gold/60">
-        {title}
-      </div>
+      <div className="mb-3 text-[11px] font-display uppercase tracking-[0.22em] text-gold/60">{title}</div>
       <div className="flex items-center gap-3">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/5">
           {imageUrl ? (
-            <Image
-              src={imageUrl}
-              alt={value}
-              width={48}
-              height={48}
-              className="h-full w-full object-cover"
-              unoptimized
-            />
+            <Image src={imageUrl} alt={value} width={48} height={48} className="h-full w-full object-cover" unoptimized />
           ) : (
-            <span className="font-display text-lg font-bold text-gray-400">
-              {value[0] ?? "?"}
-            </span>
+            <span className="font-display text-lg font-bold text-gray-400">{value[0] ?? "?"}</span>
           )}
         </div>
         <div className="min-w-0">
@@ -545,15 +484,7 @@ function PredictionHighlightCard({
   );
 }
 
-function GroupTabs({
-  groups,
-  activeGroup,
-  onChange,
-}: {
-  groups: string[];
-  activeGroup: string | null;
-  onChange: (g: string) => void;
-}) {
+function GroupTabs({ groups, activeGroup, onChange }: { groups: string[]; activeGroup: string | null; onChange: (g: string) => void }) {
   if (groups.length === 0) return null;
   return (
     <div className="overflow-x-auto md:overflow-visible scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
@@ -586,15 +517,10 @@ function MatchCardReadOnly({ match, prediction }: { match: MatchView; prediction
   return (
     <div className="glass-card p-4 sm:p-5 hover-lift">
       <div className="flex items-center justify-between mb-4">
-        <span className="text-[10px] uppercase tracking-widest text-gold font-bold bg-gold/10 px-2 py-0.5 rounded font-display">
-          Grupo {match.group}
-        </span>
+        <span className="text-[10px] uppercase tracking-widest text-gold font-bold bg-gold/10 px-2 py-0.5 rounded font-display">Grupo {match.group}</span>
         <div className="flex items-center gap-1.5 text-xs text-gray-500">
           <Calendar className="w-3 h-3 shrink-0" />
-          <LocalDateTime
-            value={match.date}
-            options={{ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }}
-          />
+          <LocalDateTime value={match.date} options={{ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }} />
         </div>
       </div>
 
@@ -648,12 +574,8 @@ function MatchCard({
   isSaving: boolean;
   locked: boolean;
 }) {
-  const [homeScore, setHomeScore] = useState<string>(
-    prediction?.homeScore !== undefined ? String(prediction.homeScore) : ""
-  );
-  const [awayScore, setAwayScore] = useState<string>(
-    prediction?.awayScore !== undefined ? String(prediction.awayScore) : ""
-  );
+  const [homeScore, setHomeScore] = useState<string>(prediction?.homeScore !== undefined ? String(prediction.homeScore) : "");
+  const [awayScore, setAwayScore] = useState<string>(prediction?.awayScore !== undefined ? String(prediction.awayScore) : "");
   const [showSavedMsg, setShowSavedMsg] = useState(false);
   const prevSaving = useRef(false);
 
@@ -690,15 +612,10 @@ function MatchCard({
   return (
     <div className="glass-card p-4 sm:p-5 hover-lift">
       <div className="flex items-center justify-between mb-4">
-        <span className="text-[10px] uppercase tracking-widest text-gold font-bold bg-gold/10 px-2 py-0.5 rounded font-display">
-          Grupo {match.group}
-        </span>
+        <span className="text-[10px] uppercase tracking-widest text-gold font-bold bg-gold/10 px-2 py-0.5 rounded font-display">Grupo {match.group}</span>
         <div className="flex items-center gap-1.5 text-xs text-gray-500">
           <Calendar className="w-3 h-3 shrink-0" />
-          <LocalDateTime
-            value={match.date}
-            options={{ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }}
-          />
+          <LocalDateTime value={match.date} options={{ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }} />
         </div>
       </div>
 
@@ -717,7 +634,9 @@ function MatchCard({
         <div className="flex items-center gap-2 shrink-0">
           <input
             type="number"
+            inputMode="numeric"
             min={0}
+            max={50}
             value={homeScore}
             disabled={locked}
             onKeyDown={(e) => {
@@ -728,7 +647,7 @@ function MatchCard({
               const v = e.target.value;
               if (v === "") return setHomeScore("");
               const n = Number(v);
-              if (!isNaN(n) && n >= 0) setHomeScore(v);
+              if (!isNaN(n) && n >= 0 && n <= 20) setHomeScore(v);
             }}
             className={inputClass}
             placeholder="0"
@@ -736,7 +655,9 @@ function MatchCard({
           <span className="text-sm font-bold text-gray-500 font-display">vs</span>
           <input
             type="number"
+            inputMode="numeric"
             min={0}
+            max={50}
             value={awayScore}
             disabled={locked}
             onKeyDown={(e) => {
@@ -747,7 +668,7 @@ function MatchCard({
               const v = e.target.value;
               if (v === "") return setAwayScore("");
               const n = Number(v);
-              if (!isNaN(n) && n >= 0) setAwayScore(v);
+              if (!isNaN(n) && n >= 0 && n <= 20) setAwayScore(v);
             }}
             className={inputClass}
             placeholder="0"

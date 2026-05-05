@@ -21,7 +21,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[#080c16]/95 backdrop-blur-2xl border-t border-gold/10"
+      className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[#080c16]/95 backdrop-blur-2xl border-t border-gold/10 transition-transform duration-200 ease-out"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto">

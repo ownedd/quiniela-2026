@@ -83,7 +83,7 @@ export function SearchableSelect({
   }, [isOpen]);
 
   return (
-    <div ref={containerRef} className="space-y-2">
+    <div ref={containerRef} className={cn("relative space-y-2", isOpen && "z-[80]")}>
       <label className="block text-[11px] font-medium text-gold/60 uppercase tracking-[0.2em] font-display">
         {label}
       </label>
@@ -136,7 +136,7 @@ export function SearchableSelect({
         )}
 
         {isOpen && !disabled && (
-          <div className="absolute z-30 mt-3 w-full overflow-hidden rounded-2xl border border-gold/15 bg-[#0a101c]/95 shadow-[0_18px_60px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+          <div className="absolute z-[80] mt-3 w-full overflow-hidden rounded-2xl border border-gold/15 bg-[#0a101c]/95 shadow-[0_18px_60px_rgba(0,0,0,0.5)] backdrop-blur-xl">
             <div className="border-b border-white/8 p-3">
               <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
                 <Search className="h-4 w-4 text-gold/60" />
@@ -145,12 +145,12 @@ export function SearchableSelect({
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder={searchPlaceholder}
-                  className="w-full bg-transparent text-sm text-white outline-none placeholder:text-gray-500"
+                  className="w-full bg-transparent text-base text-white outline-none placeholder:text-gray-500 sm:text-sm"
                 />
               </div>
             </div>
 
-            <div className="max-h-80 overflow-y-auto p-2">
+            <div className="max-h-[min(20rem,48dvh)] overflow-y-auto p-2">
               {groupedOptions.length === 0 && !onCreateNew ? (
                 <div className="px-3 py-6 text-center text-sm text-gray-500">
                   {emptyMessage}
