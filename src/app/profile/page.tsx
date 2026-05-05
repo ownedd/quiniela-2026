@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Save, Loader2, User } from "lucide-react";
+import { Save, Loader2, User, Camera } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
@@ -10,10 +10,13 @@ import Link from "next/link";
 export default function ProfilePage() {
   const { user, isLoaded } = useUser();
   const convexUser = useQuery(api.users.getCurrentUser, isLoaded && user ? {} : "skip");
+  const storeUser = useMutation(api.users.store);
   const updateDisplayName = useMutation(api.users.updateDisplayName);
   const [displayName, setDisplayName] = useState("");
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [updatingImage, setUpdatingImage] = useState(false);
+  const [nameMessage, setNameMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [imageMessage, setImageMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     if (convexUser) {
@@ -23,18 +26,54 @@ export default function ProfilePage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage(null);
+    setNameMessage(null);
     setSaving(true);
     try {
       await updateDisplayName({ displayName });
-      setMessage({ type: "success", text: "Nombre actualizado correctamente." });
+      setNameMessage({ type: "success", text: "Nombre actualizado correctamente." });
     } catch (err) {
-      setMessage({
+      setNameMessage({
         type: "error",
         text: err instanceof Error ? err.message : "Error al guardar.",
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+
+    if (!file || !user) {
+      return;
+    }
+
+    setImageMessage(null);
+
+    if (!file.type.startsWith("image/")) {
+      setImageMessage({ type: "error", text: "Selecciona una imagen valida." });
+      return;
+    }
+
+    setUpdatingImage(true);
+
+    try {
+      const imageResource = await user.setProfileImage({ file });
+      await user.reload();
+      await storeUser({
+        name: user.fullName ?? user.username ?? undefined,
+        email: user.primaryEmailAddress?.emailAddress ?? undefined,
+        image: imageResource.publicUrl ?? user.imageUrl ?? undefined,
+      });
+      setImageMessage({ type: "success", text: "Foto de perfil actualizada." });
+    } catch (err) {
+      setImageMessage({
+        type: "error",
+        text: err instanceof Error ? err.message : "No se pudo actualizar la foto.",
+      });
+    } finally {
+      setUpdatingImage(false);
     }
   };
 
@@ -75,7 +114,45 @@ export default function ProfilePage() {
         <p className="text-gray-400 font-medium">Personaliza el nombre que aparece en la tabla de posiciones</p>
       </div>
 
-      <div className="glass-card-gold p-4 sm:p-6 md:p-8 max-w-md w-full">
+      <div className="glass-card-gold p-4 sm:p-6 md:p-8 max-w-md w-full space-y-6">
+        <div className="flex flex-col items-center text-center gap-4">
+          <div className="relative">
+            <img
+              src={user.imageUrl}
+              alt="Foto de perfil"
+              className="w-24 h-24 rounded-full object-cover border-2 border-gold/30 bg-white/5"
+            />
+            <label
+              htmlFor="profile-image"
+              className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full bg-gold text-black shadow-lg cursor-pointer hover:bg-gold-light transition-colors"
+            >
+              {updatingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+            </label>
+          </div>
+
+          <div className="space-y-1">
+            <p className="font-medium text-white">{user.fullName || user.username || user.primaryEmailAddress?.emailAddress}</p>
+            <p className="text-sm text-gray-400">Haz clic en el icono para cambiar tu foto de perfil.</p>
+          </div>
+
+          <input
+            id="profile-image"
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            disabled={updatingImage}
+            className="sr-only"
+          />
+
+          {imageMessage && (
+            <p
+              className={`text-sm ${imageMessage.type === "success" ? "text-green" : "text-red-400"}`}
+            >
+              {imageMessage.text}
+            </p>
+          )}
+        </div>
+
         {convexUser === undefined ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-10 h-10 animate-spin text-gold" />
@@ -103,11 +180,11 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {message && (
+            {nameMessage && (
               <p
-                className={`text-sm ${message.type === "success" ? "text-green" : "text-red-400"}`}
+                className={`text-sm ${nameMessage.type === "success" ? "text-green" : "text-red-400"}`}
               >
-                {message.text}
+                {nameMessage.text}
               </p>
             )}
 

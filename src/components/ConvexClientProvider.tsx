@@ -13,16 +13,10 @@ const signUpUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL ?? "/login";
 
 export function ConvexClientProvider({ children }: { children: ReactNode }) {
   return (
-    <ClerkProvider
-      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-      localization={esES}
-      signInUrl={signInUrl}
-      signUpUrl={signUpUrl}
-    >
+    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY} localization={esES} signInUrl={signInUrl} signUpUrl={signUpUrl}>
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
         {children}
       </ConvexProviderWithClerk>
     </ClerkProvider>
   );
 }
-

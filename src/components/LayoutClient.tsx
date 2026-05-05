@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useContext } from "react";
-import { UserButton, SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
+import { createContext, useContext, useState } from "react";
+import { SignedIn, SignedOut, SignInButton, useClerk } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
@@ -34,6 +34,38 @@ export function LayoutClient({ children }: { children: React.ReactNode }) {
   );
 }
 
+function HeaderSignOutButton() {
+  const { signOut, session } = useClerk();
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    if (isSigningOut) {
+      return;
+    }
+
+    setIsSigningOut(true);
+
+    try {
+      // Refresh the session first to avoid stale auth state during redirect.
+      await session?.reload();
+      await signOut({ redirectUrl: "/login" });
+    } catch {
+      setIsSigningOut(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleSignOut}
+      disabled={isSigningOut}
+      className="text-sm font-medium text-gray-300 hover:text-gold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {isSigningOut ? "Saliendo..." : "Cerrar sesion"}
+    </button>
+  );
+}
+
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const isAdmin = useQuery(api.users.isAdmin);
   const settings = useQuery(api.tournamentSettings.get);
@@ -44,9 +76,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6 md:py-8">
         <header className="flex items-center justify-between gap-4 mb-6 sm:mb-8 md:mb-12 border-b border-white/5 pb-4 sm:pb-6 md:pb-8">
           <Link href="/" className="group">
-            <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-black gradient-text tracking-tight uppercase">
-              Quiniela 2026
-            </h1>
+            <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-black gradient-text tracking-tight uppercase">Quiniela 2026</h1>
           </Link>
 
           <div className="flex items-center gap-4 sm:gap-6 md:gap-8">
@@ -70,13 +100,11 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             <div className="hidden md:block h-6 w-px bg-white/10" />
 
             <SignedIn>
-              <UserButton afterSignOutUrl="/login" />
+              <HeaderSignOutButton />
             </SignedIn>
             <SignedOut>
               <SignInButton mode="modal">
-                <button className="btn-gold px-5 py-2 rounded-full text-sm cursor-pointer">
-                  Ingresar
-                </button>
+                <button className="btn-gold px-5 py-2 rounded-full text-sm cursor-pointer">Ingresar</button>
               </SignInButton>
             </SignedOut>
           </div>

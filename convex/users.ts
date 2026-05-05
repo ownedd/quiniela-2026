@@ -3,8 +3,12 @@ import { v } from "convex/values";
 const BONUS_POINTS_PER_CATEGORY = 10;
 
 export const store = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    name: v.optional(v.string()),
+    email: v.optional(v.string()),
+    image: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Sin autenticación");
@@ -16,9 +20,9 @@ export const store = mutation({
       .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
       .unique();
 
-    const name = identity.name || [identity.givenName, identity.familyName].filter(Boolean).join(" ") || "Sin Nombre";
-    const email = identity.email || "sin@email.com";
-    const image = identity.pictureUrl || "";
+    const name = args.name || identity.name || [identity.givenName, identity.familyName].filter(Boolean).join(" ") || "Sin Nombre";
+    const email = args.email || identity.email || "sin@email.com";
+    const image = args.image || identity.pictureUrl || "";
 
     if (user !== null) {
       // If we've seen this user before but the name or email has changed, patch it.

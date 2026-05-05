@@ -1,5 +1,3 @@
-"use client";
-
 import { SignIn } from "@clerk/nextjs";
 import { Trophy, Target, Users, Star } from "lucide-react";
 
@@ -11,9 +9,7 @@ export default function Login() {
         <div className="bg-gold/15 p-6 rounded-full animate-pulse-glow">
           <Trophy className="text-gold w-12 h-12 drop-shadow-[0_0_12px_rgba(212,168,67,0.5)]" />
         </div>
-        <h1 className="text-3xl sm:text-4xl font-black font-display uppercase tracking-tight gradient-text">
-          Quiniela 2026
-        </h1>
+        <h1 className="text-3xl sm:text-4xl font-black font-display uppercase tracking-tight gradient-text">Quiniela 2026</h1>
         <p className="text-gray-400 text-sm sm:text-base max-w-sm leading-relaxed">
           Predice los resultados del Mundial, compite con tus amigos y demuestra quién sabe más de fútbol.
         </p>
@@ -53,9 +49,7 @@ export default function Login() {
         />
       </div>
 
-      <p className="text-center text-xs text-gray-500">
-        Al ingresar, aceptas los términos y condiciones de la quiniela.
-      </p>
+      <p className="text-center text-xs text-gray-500">Al ingresar, aceptas los términos y condiciones de la quiniela.</p>
     </div>
   );
 }
