@@ -1,55 +1,63 @@
 import { SignIn } from "@clerk/nextjs";
-import { Trophy, Target, Users, Star } from "lucide-react";
 
 export default function Login() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] animate-slide-up gap-8 sm:gap-10 px-4">
-      {/* Hero */}
-      <div className="flex flex-col items-center gap-4 w-full max-w-md text-center">
-        <div className="bg-gold/15 p-6 rounded-full animate-pulse-glow">
-          <Trophy className="text-gold w-12 h-12 drop-shadow-[0_0_12px_rgba(212,168,67,0.5)]" />
-        </div>
-        <h1 className="text-3xl sm:text-4xl font-black font-display uppercase tracking-tight gradient-text">Quiniela 2026</h1>
-        <p className="text-gray-400 text-sm sm:text-base max-w-sm leading-relaxed">
-          Predice los resultados del Mundial, compite con tus amigos y demuestra quién sabe más de fútbol.
-        </p>
-      </div>
+    <div className="flex flex-col items-center justify-center min-h-[80vh] animate-slide-up gap-4 px-4">
+      <p className="text-center text-sm text-gray-400">Inicia sesión para continuar</p>
 
-      {/* Features */}
-      <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
-        <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-white/[0.03] border border-white/5">
-          <Target className="w-5 h-5 text-gold" />
-          <span className="text-[11px] sm:text-xs text-gray-400 text-center">Predice partidos</span>
-        </div>
-        <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-white/[0.03] border border-white/5">
-          <Users className="w-5 h-5 text-gold" />
-          <span className="text-[11px] sm:text-xs text-gray-400 text-center">Compite en grupo</span>
-        </div>
-        <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-white/[0.03] border border-white/5">
-          <Star className="w-5 h-5 text-gold" />
-          <span className="text-[11px] sm:text-xs text-gray-400 text-center">Gana puntos</span>
-        </div>
-      </div>
+      <SignIn
+        routing="hash"
+        fallbackRedirectUrl="/"
+        appearance={{
+          variables: {
+            colorPrimary: "#d4a843",
+            colorBackground: "transparent",
+            colorText: "#e8e6e1",
+            colorTextSecondary: "#9ca3af",
+            colorInputBackground: "rgba(255, 255, 255, 0.04)",
+            colorInputText: "#e8e6e1",
+            colorNeutral: "#e8e6e1",
+            colorDanger: "#ef4444",
+            borderRadius: "0.75rem",
+            fontFamily: "var(--font-body), system-ui, sans-serif",
+          },
+          elements: {
+            rootBox: "w-full max-w-sm",
+            cardBox: "shadow-none",
+            card:
+              "bg-[rgba(255,255,255,0.04)] backdrop-blur-md border border-[rgba(212,168,67,0.12)] border-t-2 border-t-[#d4a843] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4),0_-4px_20px_rgba(212,168,67,0.06)]",
+            headerTitle: "hidden",
+            headerSubtitle: "hidden",
+            logoBox: "hidden",
+            socialButtonsBlockButton:
+              "bg-white/[0.04] border border-white/10 hover:bg-white/[0.07] hover:border-[rgba(212,168,67,0.4)] text-white transition-colors",
+            socialButtonsBlockButtonText: "text-white font-medium",
+            socialButtonsProviderIcon: "brightness-100",
+            dividerLine: "bg-white/10",
+            dividerText: "text-gray-500 uppercase text-xs tracking-wider",
+            formFieldLabel: "text-gray-300 font-medium text-sm",
+            formFieldInput:
+              "bg-white/[0.04] border border-white/10 text-white placeholder:text-gray-500 focus:border-[#d4a843] focus:ring-1 focus:ring-[#d4a843]/40",
+            formFieldInputShowPasswordButton: "text-gray-400 hover:text-[#d4a843]",
+            formButtonPrimary:
+              "bg-gradient-to-br from-[#d4a843] to-[#a07c2e] hover:brightness-110 text-[#0a0a0a] font-bold shadow-lg shadow-[#d4a843]/20 normal-case tracking-normal",
+            footer:
+              "bg-transparent border-t border-white/5 [&>div]:bg-transparent",
+            footerAction: "bg-transparent",
+            footerActionText: "text-gray-400",
+            footerActionLink: "text-[#d4a843] hover:text-[#f0d078] font-semibold",
+            identityPreviewEditButton: "text-[#d4a843] hover:text-[#f0d078]",
+            identityPreviewText: "text-gray-300",
+            badge: "bg-[#d4a843]/15 text-[#d4a843] border border-[#d4a843]/30",
+            formFieldAction: "text-[#d4a843] hover:text-[#f0d078]",
+            alert: "bg-red-500/10 border border-red-500/30 text-red-300",
+          },
+        }}
+      />
 
-      {/* Sign In */}
-      <div className="glass-card-gold p-2 sm:p-4 w-full max-w-sm">
-        <SignIn
-          routing="hash"
-          fallbackRedirectUrl="/"
-          appearance={{
-            elements: {
-              card: "shadow-none bg-transparent",
-              headerTitle: "hidden",
-              headerSubtitle: "hidden",
-              socialButtonsBlockButton: "bg-white/5 border-white/10 hover:bg-white/10 text-white",
-              formButtonPrimary: "bg-[#d4a843] hover:bg-[#c49a38] text-[#0a0a0a] text-sm font-bold",
-              footer: "hidden",
-            },
-          }}
-        />
-      </div>
-
-      <p className="text-center text-xs text-gray-500">Al ingresar, aceptas los términos y condiciones de la quiniela.</p>
+      <p className="text-center text-xs text-gray-500 max-w-sm">
+        Al ingresar, aceptas los términos y condiciones de la quiniela.
+      </p>
     </div>
   );
 }
