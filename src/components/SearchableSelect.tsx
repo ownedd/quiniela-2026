@@ -136,7 +136,7 @@ export function SearchableSelect({
         )}
 
         {isOpen && !disabled && (
-          <div className="absolute z-[80] mt-3 w-full overflow-hidden rounded-2xl border border-gold/15 bg-[#0a101c]/95 shadow-[0_18px_60px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+          <div className="relative z-[80] mt-3 w-full overflow-hidden rounded-2xl border border-gold/15 bg-[#0a101c] shadow-[0_18px_60px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:absolute">
             <div className="border-b border-white/8 p-3">
               <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
                 <Search className="h-4 w-4 text-gold/60" />
