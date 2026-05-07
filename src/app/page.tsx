@@ -27,6 +27,10 @@ type LeaderboardRow = {
   bonusPoints: number;
 };
 
+type RankedLeaderboardRow = LeaderboardRow & {
+  rank: number;
+};
+
 const emptyAutoBonusDisplay: AutoBonusDisplay = {
   topScorerLines: [],
   mostGoalsLines: [],
@@ -43,7 +47,24 @@ export default function Home() {
   const userPredictions = useQuery(api.predictions.getMine, isLoaded && user ? {} : "skip") ?? [];
   const [showAll, setShowAll] = useState(false);
 
-  const displayedUsers = showAll ? users : users?.slice(0, 3);
+  const rankedUsers = useMemo<RankedLeaderboardRow[] | undefined>(() => {
+    if (!users) return undefined;
+
+    let previousScore: number | null = null;
+    let previousRank = 0;
+
+    return users.map((leaderboardUser, index) => {
+      const rank = previousScore === leaderboardUser.score ? previousRank : index + 1;
+      previousScore = leaderboardUser.score;
+      previousRank = rank;
+
+      return {
+        ...leaderboardUser,
+        rank,
+      };
+    });
+  }, [users]);
+  const displayedUsers = showAll ? rankedUsers : rankedUsers?.slice(0, 3);
 
   const totalMatches = Object.values(matchesByGroup).reduce((acc, group) => acc + group.length, 0);
   const completedPredictions = userPredictions.length;
@@ -91,30 +112,30 @@ export default function Home() {
               <div
                 key={user._id}
                 className={`flex items-center gap-3 p-3 rounded-xl transition-all hover-lift ${
-                  index === 0
+                  user.rank === 1
                     ? "bg-gold/[0.08] border border-gold/20"
-                    : index === 1
+                    : user.rank === 2
                       ? "bg-white/[0.04] border border-white/5"
-                      : index === 2
+                      : user.rank === 3
                         ? "bg-white/[0.03] border border-white/5"
                         : "bg-white/[0.02] hover:bg-white/[0.04]"
                 }`}
               >
                 <div className="flex items-center justify-center w-8 shrink-0">
-                  {index === 0 ? (
+                  {user.rank === 1 ? (
                     <Medal className="text-gold w-6 h-6 drop-shadow-[0_0_6px_rgba(212,168,67,0.4)]" />
-                  ) : index === 1 ? (
+                  ) : user.rank === 2 ? (
                     <Medal className="text-gray-300 w-5 h-5" />
-                  ) : index === 2 ? (
+                  ) : user.rank === 3 ? (
                     <Medal className="text-amber-700 w-5 h-5" />
                   ) : (
-                    <span className="text-sm font-bold text-gray-500 font-display">{index + 1}</span>
+                    <span className="text-sm font-bold text-gray-500 font-display">{user.rank}</span>
                   )}
                 </div>
 
                 <div
                   className={`w-10 h-10 rounded-full overflow-hidden shrink-0 flex items-center justify-center bg-white/5 ${
-                    index === 0 ? "border-2 border-gold/40 shadow-[0_0_12px_rgba(212,168,67,0.15)]" : "border border-white/10"
+                    user.rank === 1 ? "border-2 border-gold/40 shadow-[0_0_12px_rgba(212,168,67,0.15)]" : "border border-white/10"
                   }`}
                 >
                   {user.image ? (
@@ -125,13 +146,13 @@ export default function Home() {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <p className={`font-semibold text-sm truncate ${index === 0 ? "text-gold-light" : ""}`}>{user.displayName ?? "Participante"}</p>
+                  <p className={`font-semibold text-sm truncate ${user.rank === 1 ? "text-gold-light" : ""}`}>{user.displayName ?? "Participante"}</p>
                 </div>
 
                 <div className="flex flex-col items-end gap-0.5 shrink-0 text-right">
                   <span
                     className={`px-3 py-1 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap font-display ${
-                      index === 0 ? "bg-gold/15 text-gold border border-gold/30" : "bg-white/5 text-gray-300 border border-white/10"
+                      user.rank === 1 ? "bg-gold/15 text-gold border border-gold/30" : "bg-white/5 text-gray-300 border border-white/10"
                     }`}
                   >
                     {user.score} pts
