@@ -71,6 +71,7 @@ export default function AdminResultsPage() {
   const canBootstrap = useQuery(api.users.canBootstrapAdmin, isLoaded && user ? {} : "skip");
   const bootstrapAsFirstAdmin = useMutation(api.users.bootstrapAsFirstAdmin);
   const settings = useQuery(api.tournamentSettings.get);
+  const exportSummary = useQuery(api.predictionsExports.adminSummary, isLoaded && user && isAdmin ? {} : "skip");
   const matchesByGroup = (useQuery(api.matches.byGroup) ?? {}) as Record<string, AdminMatchView[]>;
   const teams = (useQuery(api.teams.list) ?? []) as TeamOption[];
   const players = (useQuery(api.bonusPredictions.getPlayers) ?? []) as PlayerOption[];
@@ -152,9 +153,7 @@ export default function AdminResultsPage() {
       await setPredictionsLocked({ locked: newLocked });
       setMessage({
         type: "success",
-        text: newLocked
-          ? "Predicciones bloqueadas. Generando quinielas.xlsx..."
-          : "Predicciones desbloqueadas y exportación limpiada.",
+        text: newLocked ? "Predicciones bloqueadas." : "Predicciones desbloqueadas y exportación limpiada.",
       });
     } catch (err) {
       setMessage({ type: "error", text: err instanceof Error ? err.message : "Error" });
@@ -217,9 +216,18 @@ export default function AdminResultsPage() {
   }
 
   const locked = settings?.predictionsLocked ?? false;
-  const exportStatus = settings?.predictionsExportStatus;
-  const isGeneratingExport = locked && exportStatus === "generating";
-  const exportGeneratedAt = settings?.predictionsExportGeneratedAt ?? null;
+  const exportStatus =
+    !locked
+      ? null
+      : exportSummary === undefined
+        ? "loading"
+        : exportSummary?.error
+          ? "error"
+          : exportSummary?.generating
+            ? "generating"
+            : exportSummary?.ready
+              ? "ready"
+              : "empty";
 
   return (
     <div className="space-y-5 animate-slide-up">
@@ -264,29 +272,24 @@ export default function AdminResultsPage() {
         </div>
         {locked && (
           <div className="mt-4 text-sm">
-            {isGeneratingExport && (
+            {exportStatus === "loading" || exportStatus === "generating" ? (
               <div className="flex items-center gap-2 text-gold">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Generando quinielas.xlsx con las predicciones registradas...</span>
+                <span>
+                  Generando exportaciones por grupo
+                  {exportSummary ? ` (${exportSummary.ready}/${exportSummary.total} listas)` : ""}...
+                </span>
               </div>
-            )}
-            {exportStatus === "ready" && (
+            ) : exportStatus === "ready" ? (
               <p className="text-green">
-                quinielas.xlsx listo para descarga
-                {exportGeneratedAt ? (
-                  <>
-                    {" "}desde{" "}
-                    <LocalDateTime value={exportGeneratedAt} />
-                  </>
-                ) : null}
-                .
+                Exportaciones listas para descarga ({exportSummary?.ready}/{exportSummary?.total} grupos).
               </p>
-            )}
-            {exportStatus === "error" && (
+            ) : exportStatus === "error" ? (
               <p className="text-red-400">
-                No se pudo generar quinielas.xlsx
-                {settings?.predictionsExportError ? `: ${settings.predictionsExportError}` : "."}
+                {exportSummary?.ready}/{exportSummary?.total} exportaciones listas. {exportSummary?.error} con error.
               </p>
+            ) : (
+              <p className="text-gray-400">No hay grupos con exportación generada.</p>
             )}
           </div>
         )}

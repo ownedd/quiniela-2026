@@ -70,11 +70,15 @@ function formatGeneratedAtLocal(now: Date) {
 
 export const generatePredictionsExport = internalAction({
   args: {
+    groupId: v.id("quinielaGroups"),
     token: v.string(),
   },
-  handler: async (ctx, { token }) => {
+  handler: async (ctx, { groupId, token }) => {
     try {
-      const data = await ctx.runQuery(internal.predictions.getAllForExport);
+      const [data, group] = await Promise.all([
+        ctx.runQuery(internal.predictions.getAllForExport, { groupId }),
+        ctx.runQuery(internal.quinielaGroups.getById, { groupId }),
+      ]);
       const workbook = new ExcelJS.Workbook();
       workbook.creator = "quiniela";
       workbook.created = new Date();
@@ -211,17 +215,22 @@ export const generatePredictionsExport = internalAction({
         })
       );
 
-      await ctx.runMutation(internal.tournamentSettings.completePredictionsExport, {
+      const groupNameSafe = (group?.name ?? "grupo").replace(/\s+/g, "-").toLowerCase();
+      const filename = `quinielas-${groupNameSafe}.xlsx`;
+
+      await ctx.runMutation(internal.predictionsExports.complete, {
+        groupId,
         token,
         storageId,
-        filename: EXPORT_FILENAME,
+        filename,
         generatedAt: generatedAt.toISOString(),
       });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "No se pudo generar quinielas.xlsx";
 
-      await ctx.runMutation(internal.tournamentSettings.failPredictionsExport, {
+      await ctx.runMutation(internal.predictionsExports.fail, {
+        groupId,
         token,
         error: message,
       });

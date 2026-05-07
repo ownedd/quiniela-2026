@@ -69,13 +69,6 @@ async function recalculateBonusResultsInMutation(ctx: MutationCtx) {
       actualTopScorers,
       actualMostGoalsTeams,
       actualLeastConcededTeams,
-      predictionsExportStorageId: undefined,
-      predictionsExportFilename: undefined,
-      predictionsExportGeneratedAt: undefined,
-      predictionsExportStatus: undefined,
-      predictionsExportError: undefined,
-      predictionsExportToken: undefined,
-      predictionsExportScheduledId: undefined,
     });
   }
 

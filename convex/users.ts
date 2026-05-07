@@ -106,11 +106,28 @@ export const setAdmin = mutation({
 export const leaderboard = query({
   args: {},
   handler: async (ctx) => {
-    const [users, settings, bonusPredictions] = await Promise.all([
-      ctx.db.query("users").withIndex("by_score").order("desc").collect(),
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    const groupId = caller?.groupId;
+    if (!groupId) return [];
+
+    const [users, settings, allBonusPredictions] = await Promise.all([
+      ctx.db
+        .query("users")
+        .withIndex("by_groupId_score", (q) => q.eq("groupId", groupId))
+        .order("desc")
+        .collect(),
       ctx.db.query("tournamentSettings").first(),
       ctx.db.query("bonusPredictions").collect(),
     ]);
+    const userIdSet = new Set(users.map((u) => u._id));
+    const bonusPredictions = allBonusPredictions.filter((b) => userIdSet.has(b.userId));
 
     const topScorerIds = new Set(settings?.actualTopScorers ?? []);
     const mostGoalsTeamIds = new Set(settings?.actualMostGoalsTeams ?? []);

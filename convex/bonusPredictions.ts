@@ -119,7 +119,11 @@ export const getByUserId = query({
     const isOwner = caller._id === userId;
     const isAdmin = caller.isAdmin === true;
 
-    if (!isOwner && !isAdmin) return null;
+    if (!isOwner && !isAdmin) {
+      const target = await ctx.db.get(userId);
+      const sameGroup = !!caller.groupId && !!target?.groupId && caller.groupId === target.groupId;
+      if (!sameGroup) return null;
+    }
 
     const prediction = await ctx.db
       .query("bonusPredictions")

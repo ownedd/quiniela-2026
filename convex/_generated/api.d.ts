@@ -12,6 +12,8 @@ import type * as bonusPredictions from "../bonusPredictions.js";
 import type * as matches from "../matches.js";
 import type * as predictions from "../predictions.js";
 import type * as predictionsExport from "../predictionsExport.js";
+import type * as predictionsExports from "../predictionsExports.js";
+import type * as quinielaGroups from "../quinielaGroups.js";
 import type * as scoring from "../scoring.js";
 import type * as seedData from "../seedData.js";
 import type * as teams from "../teams.js";
@@ -30,6 +32,8 @@ declare const fullApi: ApiFromModules<{
   matches: typeof matches;
   predictions: typeof predictions;
   predictionsExport: typeof predictionsExport;
+  predictionsExports: typeof predictionsExports;
+  quinielaGroups: typeof quinielaGroups;
   scoring: typeof scoring;
   seedData: typeof seedData;
   teams: typeof teams;

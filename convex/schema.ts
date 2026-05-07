@@ -2,6 +2,12 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  quinielaGroups: defineTable({
+    name: v.string(),
+    invitationCode: v.string(),
+    createdAt: v.string(),
+  }).index("by_invitationCode", ["invitationCode"]),
+
   users: defineTable({
     name: v.string(),
     email: v.string(),
@@ -10,9 +16,25 @@ export default defineSchema({
     score: v.number(),
     clerkId: v.optional(v.string()),
     isAdmin: v.optional(v.boolean()),
+    groupId: v.optional(v.id("quinielaGroups")),
   })
     .index("by_clerkId", ["clerkId"])
-    .index("by_score", ["score"]),
+    .index("by_score", ["score"])
+    .index("by_groupId", ["groupId"])
+    .index("by_groupId_score", ["groupId", "score"]),
+
+  predictionsExports: defineTable({
+    groupId: v.id("quinielaGroups"),
+    storageId: v.optional(v.id("_storage")),
+    filename: v.optional(v.string()),
+    generatedAt: v.optional(v.string()),
+    status: v.union(v.literal("generating"), v.literal("ready"), v.literal("error")),
+    error: v.optional(v.string()),
+    token: v.string(),
+    scheduledId: v.optional(v.id("_scheduled_functions")),
+  })
+    .index("by_groupId", ["groupId"])
+    .index("by_groupId_token", ["groupId", "token"]),
 
   tournamentSettings: defineTable({
     predictionsLocked: v.boolean(),
@@ -21,13 +43,7 @@ export default defineSchema({
     actualTopScorers: v.optional(v.array(v.id("players"))),
     actualMostGoalsTeams: v.optional(v.array(v.id("teams"))),
     actualLeastConcededTeams: v.optional(v.array(v.id("teams"))),
-    predictionsExportStorageId: v.optional(v.id("_storage")),
-    predictionsExportFilename: v.optional(v.string()),
-    predictionsExportGeneratedAt: v.optional(v.string()),
-    predictionsExportStatus: v.optional(v.union(v.literal("generating"), v.literal("ready"), v.literal("error"))),
-    predictionsExportError: v.optional(v.string()),
-    predictionsExportToken: v.optional(v.string()),
-    predictionsExportScheduledId: v.optional(v.id("_scheduled_functions")),
+    // Export global legacy; replaced by `predictionsExports` per group.
   }),
 
   teams: defineTable({

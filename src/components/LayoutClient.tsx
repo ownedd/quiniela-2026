@@ -6,6 +6,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import { SyncUser } from "@/components/SyncUser";
+import { JoinGroupGate } from "@/components/JoinGroupGate";
 import { BottomNav } from "@/components/BottomNav";
 import { PwaRegister } from "@/components/PwaRegister";
 import Link from "next/link";
@@ -110,7 +111,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="pb-24 md:pb-0">{children}</main>
+        <main className="pb-24 md:pb-0">
+          <JoinGroupGate>{children}</JoinGroupGate>
+        </main>
 
         <BottomNav />
       </div>

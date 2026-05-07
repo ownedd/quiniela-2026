@@ -23,6 +23,26 @@ function randomScores(userIndex: number, matchIndex: number): { homeScore: numbe
 export const seedUsersAndPredictions = mutation({
   args: {},
   handler: async (ctx) => {
+    const now = new Date().toISOString();
+    const ensureGroup = async (name: string, invitationCode: string) => {
+      const existing = await ctx.db
+        .query("quinielaGroups")
+        .withIndex("by_invitationCode", (q) => q.eq("invitationCode", invitationCode))
+        .unique();
+      if (existing) return existing;
+      const id = await ctx.db.insert("quinielaGroups", {
+        name,
+        invitationCode,
+        createdAt: now,
+      });
+      const created = await ctx.db.get(id);
+      if (!created) throw new Error(`No se pudo crear el grupo ${name}`);
+      return created;
+    };
+
+    const groupA = await ensureGroup("Demo A", "DEMOA");
+    const groupB = await ensureGroup("Demo B", "DEMOB");
+
     const allUsers = await ctx.db.query("users").collect();
     const seedUsers = allUsers.filter((u) => u.clerkId?.startsWith(SEED_CLERK_PREFIX));
 
@@ -60,6 +80,7 @@ export const seedUsersAndPredictions = mutation({
 
     const userIds: Id<"users">[] = [];
     for (let i = 1; i <= SEED_USER_COUNT; i++) {
+      const groupId = i % 2 === 0 ? groupB._id : groupA._id;
       const id = await ctx.db.insert("users", {
         name: `Usuario prueba ${i}`,
         email: `prueba${i}@seed.quiniela.local`,
@@ -67,6 +88,7 @@ export const seedUsersAndPredictions = mutation({
         score: 0,
         clerkId: `${SEED_CLERK_PREFIX}${String(i).padStart(2, "0")}`,
         isAdmin: false,
+        groupId,
       });
       userIds.push(id);
     }

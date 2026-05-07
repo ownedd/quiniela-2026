@@ -16,7 +16,11 @@ export const getByUserId = query({
 
     const isOwner = caller._id === userId;
     const isAdmin = caller.isAdmin === true;
-    if (!isOwner && !isAdmin) return [];
+    if (!isOwner && !isAdmin) {
+      const target = await ctx.db.get(userId);
+      const sameGroup = !!caller.groupId && !!target?.groupId && caller.groupId === target.groupId;
+      if (!sameGroup) return [];
+    }
 
     return await ctx.db
       .query("predictions")
@@ -46,16 +50,24 @@ export const getMine = query({
 });
 
 export const getAllForExport = internalQuery({
-  args: {},
-  handler: async (ctx) => {
-    const [users, predictions, bonusPredictions, matches, teams, players] = await Promise.all([
-      ctx.db.query("users").withIndex("by_score").order("desc").collect(),
+  args: { groupId: v.id("quinielaGroups") },
+  handler: async (ctx, { groupId }) => {
+    const [users, allPredictions, allBonusPredictions, matches, teams, players] = await Promise.all([
+      ctx.db
+        .query("users")
+        .withIndex("by_groupId_score", (q) => q.eq("groupId", groupId))
+        .order("desc")
+        .collect(),
       ctx.db.query("predictions").collect(),
       ctx.db.query("bonusPredictions").collect(),
       ctx.db.query("matches").order("asc").collect(),
       ctx.db.query("teams").collect(),
       ctx.db.query("players").collect(),
     ]);
+
+    const userIdSet = new Set(users.map((u) => u._id));
+    const predictions = allPredictions.filter((p) => userIdSet.has(p.userId));
+    const bonusPredictions = allBonusPredictions.filter((b) => userIdSet.has(b.userId));
 
     const teamMap = new Map(teams.map((team) => [team._id, team]));
     const playerMap = new Map(players.map((player) => [player._id, player]));

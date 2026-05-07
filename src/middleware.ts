@@ -1,7 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-const isProtectedRoute = createRouteMatcher(["/", "/predictions(.*)", "/admin(.*)", "/api/predictions/export(.*)"]);
+const isProtectedRoute = createRouteMatcher(["/", "/predictions(.*)", "/admin(.*)", "/join-group(.*)", "/api/predictions/export(.*)"]);
 
 const signInUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL ?? "/login";
 const signUpUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL ?? "/login";
@@ -21,5 +21,5 @@ export default clerkMiddleware(
 );
 
 export const config = {
-  matcher: ["/", "/login(.*)", "/predictions(.*)", "/admin(.*)", "/api/predictions/export(.*)"],
+  matcher: ["/", "/login(.*)", "/predictions(.*)", "/admin(.*)", "/join-group(.*)", "/api/predictions/export(.*)"],
 };
