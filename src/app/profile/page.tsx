@@ -3,9 +3,53 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Save, Loader2, User, Camera } from "lucide-react";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
+
+const IMAGE_TYPES_BY_EXTENSION: Record<string, string> = {
+  gif: "image/gif",
+  jpeg: "image/jpeg",
+  jpg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+};
+
+function imageTypeFromExtension(fileName: string) {
+  const extension = fileName.split(".").pop()?.toLowerCase();
+  return extension ? IMAGE_TYPES_BY_EXTENSION[extension] : undefined;
+}
+
+async function imageTypeFromHeader(file: File) {
+  const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "image/png";
+  if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) return "image/gif";
+  if (
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  ) {
+    return "image/webp";
+  }
+
+  return undefined;
+}
+
+async function normalizeImageFile(file: File) {
+  const type = file.type.startsWith("image/")
+    ? file.type
+    : imageTypeFromExtension(file.name) ?? await imageTypeFromHeader(file);
+
+  return type ? new File([file], file.name || `profile.${type.split("/")[1]}`, { type }) : null;
+}
 
 export default function ProfilePage() {
   const { user, isLoaded } = useUser();
@@ -51,7 +95,9 @@ export default function ProfilePage() {
 
     setImageMessage(null);
 
-    if (!file.type.startsWith("image/")) {
+    const imageFile = await normalizeImageFile(file);
+
+    if (!imageFile) {
       setImageMessage({ type: "error", text: "Selecciona una imagen valida." });
       return;
     }
@@ -59,7 +105,7 @@ export default function ProfilePage() {
     setUpdatingImage(true);
 
     try {
-      const imageResource = await user.setProfileImage({ file });
+      const imageResource = await user.setProfileImage({ file: imageFile });
       await user.reload();
       await storeUser({
         name: user.fullName ?? user.username ?? undefined,
@@ -117,10 +163,13 @@ export default function ProfilePage() {
       <div className="glass-card-gold p-4 sm:p-6 md:p-8 max-w-md w-full space-y-6">
         <div className="flex flex-col items-center text-center gap-4">
           <div className="relative">
-            <img
+            <Image
               src={user.imageUrl}
               alt="Foto de perfil"
+              width={96}
+              height={96}
               className="w-24 h-24 rounded-full object-cover border-2 border-gold/30 bg-white/5"
+              unoptimized
             />
             <label
               htmlFor="profile-image"
