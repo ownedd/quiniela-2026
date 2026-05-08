@@ -574,10 +574,14 @@ function MatchCard({
   isSaving: boolean;
   locked: boolean;
 }) {
-  const [homeScore, setHomeScore] = useState<string>(prediction?.homeScore !== undefined ? String(prediction.homeScore) : "");
-  const [awayScore, setAwayScore] = useState<string>(prediction?.awayScore !== undefined ? String(prediction.awayScore) : "");
+  const [homeScoreDraft, setHomeScoreDraft] = useState<string | null>(null);
+  const [awayScoreDraft, setAwayScoreDraft] = useState<string | null>(null);
   const [showSavedMsg, setShowSavedMsg] = useState(false);
   const prevSaving = useRef(false);
+  const predictionHomeScore = prediction?.homeScore;
+  const predictionAwayScore = prediction?.awayScore;
+  const homeScore = homeScoreDraft ?? (predictionHomeScore !== undefined ? String(predictionHomeScore) : "");
+  const awayScore = awayScoreDraft ?? (predictionAwayScore !== undefined ? String(predictionAwayScore) : "");
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -645,9 +649,9 @@ function MatchCard({
             onChange={(e) => {
               if (locked) return;
               const v = e.target.value;
-              if (v === "") return setHomeScore("");
+              if (v === "") return setHomeScoreDraft("");
               const n = Number(v);
-              if (!isNaN(n) && n >= 0 && n <= 20) setHomeScore(v);
+              if (!isNaN(n) && n >= 0 && n <= 20) setHomeScoreDraft(v);
             }}
             className={inputClass}
             placeholder="0"
@@ -666,9 +670,9 @@ function MatchCard({
             onChange={(e) => {
               if (locked) return;
               const v = e.target.value;
-              if (v === "") return setAwayScore("");
+              if (v === "") return setAwayScoreDraft("");
               const n = Number(v);
-              if (!isNaN(n) && n >= 0 && n <= 20) setAwayScore(v);
+              if (!isNaN(n) && n >= 0 && n <= 20) setAwayScoreDraft(v);
             }}
             className={inputClass}
             placeholder="0"
