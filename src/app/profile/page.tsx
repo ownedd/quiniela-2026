@@ -214,17 +214,16 @@ export default function ProfilePage() {
     }
 
     setImageMessage(null);
-
-    const imageFile = await normalizeImageFile(file);
-
-    if (!imageFile) {
-      setImageMessage({ type: "error", text: "Selecciona una imagen valida." });
-      return;
-    }
-
     setUpdatingImage(true);
 
     try {
+      const imageFile = await normalizeImageFile(file);
+
+      if (!imageFile) {
+        setImageMessage({ type: "error", text: "Selecciona una imagen valida." });
+        return;
+      }
+
       const imageResource = await user.setProfileImage({ file: imageFile });
       await user.reload();
       await storeUser({
@@ -293,7 +292,10 @@ export default function ProfilePage() {
             />
             <label
               htmlFor="profile-image"
-              className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full bg-gold text-black shadow-lg cursor-pointer hover:bg-gold-light transition-colors"
+              aria-disabled={updatingImage}
+              className={`absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full bg-gold text-black shadow-lg transition-colors ${
+                updatingImage ? "cursor-wait opacity-80" : "cursor-pointer hover:bg-gold-light"
+              }`}
             >
               {updatingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
             </label>
@@ -301,7 +303,9 @@ export default function ProfilePage() {
 
           <div className="space-y-1">
             <p className="font-medium text-white">{user.fullName || user.username || user.primaryEmailAddress?.emailAddress}</p>
-            <p className="text-sm text-gray-400">Haz clic en el icono para cambiar tu foto de perfil.</p>
+            <p className="text-sm text-gray-400">
+              {updatingImage ? "Procesando imagen..." : "Haz clic en el icono para cambiar tu foto de perfil."}
+            </p>
           </div>
 
           <input
