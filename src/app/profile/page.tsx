@@ -10,6 +10,8 @@ import Link from "next/link";
 
 const IMAGE_TYPES_BY_EXTENSION: Record<string, string> = {
   gif: "image/gif",
+  heic: "image/heic",
+  heif: "image/heif",
   jpeg: "image/jpeg",
   jpg: "image/jpeg",
   png: "image/png",
@@ -26,6 +28,8 @@ const IMAGE_EXTENSION_BY_TYPE: Record<string, string> = {
 const CONVERTED_IMAGE_TYPE = "image/jpeg";
 const CONVERTED_IMAGE_QUALITY = 0.9;
 const SUPPORTED_IMAGE_TYPES = new Set(Object.keys(IMAGE_EXTENSION_BY_TYPE));
+const HEIC_IMAGE_TYPES = new Set(["image/heic", "image/heif"]);
+const HEIC_BRANDS = ["heic", "heix", "hevc", "hevx", "heif", "mif1", "msf1"];
 
 function imageTypeFromExtension(fileName: string) {
   const extension = fileName.split(".").pop()?.toLowerCase();
@@ -41,6 +45,10 @@ function fileNameForImageType(fileName: string, type: string) {
 
   const nameWithoutExtension = name.replace(/\.[^/.]+$/, "");
   return `${nameWithoutExtension || "profile"}.${extension}`;
+}
+
+function isHeicType(type: string | undefined) {
+  return !!type && HEIC_IMAGE_TYPES.has(type.toLowerCase());
 }
 
 async function imageTypeFromHeader(file: File) {
@@ -65,6 +73,17 @@ async function imageTypeFromHeader(file: File) {
   return undefined;
 }
 
+async function isHeicFromHeader(file: File) {
+  const bytes = new Uint8Array(await file.slice(0, 32).arrayBuffer());
+
+  if (bytes[4] !== 0x66 || bytes[5] !== 0x74 || bytes[6] !== 0x79 || bytes[7] !== 0x70) {
+    return false;
+  }
+
+  const header = String.fromCharCode(...bytes).toLowerCase();
+  return HEIC_BRANDS.some((brand) => header.includes(brand));
+}
+
 function loadImage(file: File) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const url = URL.createObjectURL(file);
@@ -86,6 +105,27 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number)
   return new Promise<Blob | null>((resolve) => {
     canvas.toBlob(resolve, type, quality);
   });
+}
+
+async function convertHeicToJpeg(file: File) {
+  try {
+    const { default: heic2any } = await import("heic2any");
+    const converted = await heic2any({
+      blob: file,
+      quality: CONVERTED_IMAGE_QUALITY,
+      toType: CONVERTED_IMAGE_TYPE,
+    });
+    const blob = Array.isArray(converted) ? converted[0] : converted;
+
+    if (!blob) return null;
+
+    return new File([blob], fileNameForImageType(file.name, CONVERTED_IMAGE_TYPE), {
+      lastModified: file.lastModified,
+      type: CONVERTED_IMAGE_TYPE,
+    });
+  } catch {
+    return null;
+  }
 }
 
 async function convertImageToJpeg(file: File) {
@@ -113,9 +153,15 @@ async function convertImageToJpeg(file: File) {
 }
 
 async function normalizeImageFile(file: File) {
+  const typeFromExtension = imageTypeFromExtension(file.name);
+
+  if (isHeicType(file.type) || isHeicType(typeFromExtension) || await isHeicFromHeader(file)) {
+    return convertHeicToJpeg(file);
+  }
+
   const type = SUPPORTED_IMAGE_TYPES.has(file.type)
     ? file.type
-    : imageTypeFromExtension(file.name) ?? await imageTypeFromHeader(file);
+    : typeFromExtension ?? await imageTypeFromHeader(file);
 
   if (!type) return convertImageToJpeg(file);
 
