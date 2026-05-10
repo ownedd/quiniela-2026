@@ -16,9 +16,29 @@ const IMAGE_TYPES_BY_EXTENSION: Record<string, string> = {
   webp: "image/webp",
 };
 
+const IMAGE_EXTENSION_BY_TYPE: Record<string, string> = {
+  "image/gif": "gif",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
+const SUPPORTED_IMAGE_TYPES = new Set(Object.keys(IMAGE_EXTENSION_BY_TYPE));
+
 function imageTypeFromExtension(fileName: string) {
   const extension = fileName.split(".").pop()?.toLowerCase();
   return extension ? IMAGE_TYPES_BY_EXTENSION[extension] : undefined;
+}
+
+function fileNameForImageType(fileName: string, type: string) {
+  const extension = IMAGE_EXTENSION_BY_TYPE[type];
+  const name = fileName.trim();
+
+  if (!extension) return name || "profile";
+  if (imageTypeFromExtension(name) === type) return name;
+
+  const nameWithoutExtension = name.replace(/\.[^/.]+$/, "");
+  return `${nameWithoutExtension || "profile"}.${extension}`;
 }
 
 async function imageTypeFromHeader(file: File) {
@@ -44,11 +64,16 @@ async function imageTypeFromHeader(file: File) {
 }
 
 async function normalizeImageFile(file: File) {
-  const type = file.type.startsWith("image/")
+  const type = SUPPORTED_IMAGE_TYPES.has(file.type)
     ? file.type
     : imageTypeFromExtension(file.name) ?? await imageTypeFromHeader(file);
 
-  return type ? new File([file], file.name || `profile.${type.split("/")[1]}`, { type }) : null;
+  if (!type) return null;
+
+  return new File([await file.arrayBuffer()], fileNameForImageType(file.name, type), {
+    lastModified: file.lastModified,
+    type,
+  });
 }
 
 export default function ProfilePage() {
