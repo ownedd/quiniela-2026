@@ -23,6 +23,8 @@ const IMAGE_EXTENSION_BY_TYPE: Record<string, string> = {
   "image/webp": "webp",
 };
 
+const CONVERTED_IMAGE_TYPE = "image/jpeg";
+const CONVERTED_IMAGE_QUALITY = 0.9;
 const SUPPORTED_IMAGE_TYPES = new Set(Object.keys(IMAGE_EXTENSION_BY_TYPE));
 
 function imageTypeFromExtension(fileName: string) {
@@ -63,12 +65,59 @@ async function imageTypeFromHeader(file: File) {
   return undefined;
 }
 
+function loadImage(file: File) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const image = document.createElement("img");
+
+    image.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("No se pudo leer la imagen."));
+    };
+    image.src = url;
+  });
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number) {
+  return new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, type, quality);
+  });
+}
+
+async function convertImageToJpeg(file: File) {
+  try {
+    const image = await loadImage(file);
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+
+    const context = canvas.getContext("2d");
+    if (!context) return null;
+
+    context.drawImage(image, 0, 0);
+
+    const blob = await canvasToBlob(canvas, CONVERTED_IMAGE_TYPE, CONVERTED_IMAGE_QUALITY);
+    if (!blob) return null;
+
+    return new File([blob], fileNameForImageType(file.name, CONVERTED_IMAGE_TYPE), {
+      lastModified: file.lastModified,
+      type: CONVERTED_IMAGE_TYPE,
+    });
+  } catch {
+    return null;
+  }
+}
+
 async function normalizeImageFile(file: File) {
   const type = SUPPORTED_IMAGE_TYPES.has(file.type)
     ? file.type
     : imageTypeFromExtension(file.name) ?? await imageTypeFromHeader(file);
 
-  if (!type) return null;
+  if (!type) return convertImageToJpeg(file);
 
   return new File([await file.arrayBuffer()], fileNameForImageType(file.name, type), {
     lastModified: file.lastModified,
