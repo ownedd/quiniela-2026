@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -24,21 +24,8 @@ export function JoinGroupGate({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useConvexAuth();
   const convexUser = useQuery(api.users.getCurrentUser, isLoaded && user && isAuthenticated ? {} : "skip");
 
-  const needsGroup = useMemo(() => {
-    if (!isLoaded) return false;
-    if (!user) return false;
-    if (!isAuthenticated) return false;
-    if (convexUser === undefined) return true; // loading
-    if (!convexUser) return true; // SyncUser might still be running
-    return !convexUser.groupId;
-  }, [isLoaded, user, isAuthenticated, convexUser]);
-
   if (!isLoaded) {
-    return (
-      <div className="flex items-center justify-center min-h-[70vh]">
-        <Loader2 className="w-10 h-10 animate-spin text-gold" />
-      </div>
-    );
+    return <GateLoadingState />;
   }
 
   if (!user) {
@@ -46,18 +33,31 @@ export function JoinGroupGate({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    return (
-      <div className="flex items-center justify-center min-h-[70vh]">
-        <Loader2 className="w-10 h-10 animate-spin text-gold" />
-      </div>
-    );
+    return <GateLoadingState />;
   }
 
-  if (!needsGroup) {
+  if (convexUser === undefined) {
+    return <GateLoadingState message="Cargando tus datos..." />;
+  }
+
+  if (convexUser === null) {
+    return <GateLoadingState message="Sincronizando tu cuenta..." />;
+  }
+
+  if (convexUser.groupId) {
     return <>{children}</>;
   }
 
   return <JoinGroupScreen />;
+}
+
+function GateLoadingState({ message }: { message?: string }) {
+  return (
+    <div className="flex min-h-[70vh] flex-col items-center justify-center gap-3">
+      <Loader2 className="w-10 h-10 animate-spin text-gold" />
+      {message ? <p className="text-sm text-gray-500">{message}</p> : null}
+    </div>
+  );
 }
 
 function JoinGroupScreen() {

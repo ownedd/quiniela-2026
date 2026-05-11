@@ -43,8 +43,10 @@ export default function Home() {
   const settings = useQuery(api.tournamentSettings.get);
   const teamsQuery = useQuery(api.teams.list);
   const playersQuery = useQuery(api.bonusPredictions.getPlayers);
-  const matchesByGroup = useQuery(api.matches.byGroup) ?? {};
-  const userPredictions = useQuery(api.predictions.getMine, isLoaded && user ? {} : "skip") ?? [];
+  const matchesByGroupQuery = useQuery(api.matches.byGroup);
+  const userPredictionsQuery = useQuery(api.predictions.getMine, isLoaded && user ? {} : "skip");
+  const matchesByGroup = matchesByGroupQuery ?? {};
+  const userPredictions = userPredictionsQuery ?? [];
   const [showAll, setShowAll] = useState(false);
 
   const rankedUsers = useMemo<RankedLeaderboardRow[] | undefined>(() => {
@@ -66,9 +68,11 @@ export default function Home() {
   }, [users]);
   const displayedUsers = showAll ? rankedUsers : rankedUsers?.slice(0, 3);
 
-  const totalMatches = Object.values(matchesByGroup).reduce((acc, group) => acc + group.length, 0);
-  const completedPredictions = userPredictions.length;
-  const missingPredictions = totalMatches - completedPredictions;
+  const predictionsProgressLoading = !isLoaded || matchesByGroupQuery === undefined || (!!user && userPredictionsQuery === undefined);
+  const totalMatches = predictionsProgressLoading ? undefined : Object.values(matchesByGroup).reduce((acc, group) => acc + group.length, 0);
+  const completedPredictions = predictionsProgressLoading ? undefined : userPredictions.length;
+  const missingPredictions = totalMatches === undefined || completedPredictions === undefined ? undefined : totalMatches - completedPredictions;
+  const missingPredictionsCount = missingPredictions ?? 0;
   const predictionsLocked = settings?.predictionsLocked ?? false;
 
   const autoBonusDisplay = useMemo(() => {
@@ -108,7 +112,7 @@ export default function Home() {
               <p className="text-sm text-gray-500">Cargando participantes...</p>
             </div>
           ) : displayedUsers && displayedUsers.length > 0 ? (
-            displayedUsers.map((user, index) => (
+            displayedUsers.map((user) => (
               <div
                 key={user._id}
                 className={`flex items-center gap-3 p-3 rounded-xl transition-all hover-lift ${
@@ -262,17 +266,19 @@ export default function Home() {
               <h3 className="font-bold text-lg font-display uppercase tracking-wide">Proximos Pasos</h3>
             </div>
             <p className="text-sm text-gray-300 mb-4 leading-relaxed">
-              {missingPredictions > 0 ? (
+              {predictionsProgressLoading ? (
+                <>Cargando el avance de tus predicciones...</>
+              ) : missingPredictionsCount > 0 ? (
                 <>
-                  Te falta{missingPredictions > 1 ? "n" : ""} <span className="text-gold font-semibold">{missingPredictions}</span> prediccion
-                  {missingPredictions > 1 ? "es" : ""} por llenar.
+                  Te falta{missingPredictionsCount > 1 ? "n" : ""} <span className="text-gold font-semibold">{missingPredictionsCount}</span> prediccion
+                  {missingPredictionsCount > 1 ? "es" : ""} por llenar.
                 </>
               ) : (
                 <>Listo. Puedes cambiar tus predicciones hasta el comienzo del mundial.</>
               )}
             </p>
             <Link href="/predictions" className="btn-gold inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 text-sm gap-2">
-              {missingPredictions > 0 ? "Comenzar Predicciones" : "Ver Mis Predicciones"}
+              {predictionsProgressLoading ? "Abrir Predicciones" : missingPredictionsCount > 0 ? "Comenzar Predicciones" : "Ver Mis Predicciones"}
               <ChevronRight className="w-4 h-4" />
             </Link>
           </div>

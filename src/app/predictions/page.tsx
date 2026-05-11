@@ -92,18 +92,23 @@ function LocalDateTime({ value, options }: { value: string; options?: Intl.DateT
 
 export default function Predictions() {
   const { user, isLoaded } = useUser();
-  const matchesByGroup = (useQuery(api.matches.byGroup) ?? {}) as Record<string, MatchView[]>;
-  const teams = (useQuery(api.teams.list) ?? []) as TeamOption[];
-  const players = (useQuery(api.bonusPredictions.getPlayers) ?? []) as PlayerOption[];
+  const matchesByGroupQuery = useQuery(api.matches.byGroup) as Record<string, MatchView[]> | undefined;
+  const teamsQuery = useQuery(api.teams.list) as TeamOption[] | undefined;
+  const playersQuery = useQuery(api.bonusPredictions.getPlayers) as PlayerOption[] | undefined;
   const settings = useQuery(api.tournamentSettings.get);
-  const leaderboard = (useQuery(api.users.leaderboard) ?? []) as LeaderboardUser[];
+  const leaderboardQuery = useQuery(api.users.leaderboard) as LeaderboardUser[] | undefined;
   const submitPrediction = useMutation(api.predictions.submit);
   const submitBonusPrediction = useMutation(api.bonusPredictions.submit);
-  const userPredictions = (useQuery(api.predictions.getMine, isLoaded && user ? {} : "skip") ?? []) as MatchPrediction[];
-  const userBonusPrediction = useQuery(api.bonusPredictions.getMine, isLoaded && user ? {} : "skip") as BonusPredictionView;
+  const userPredictionsQuery = useQuery(api.predictions.getMine, isLoaded && user ? {} : "skip") as MatchPrediction[] | undefined;
+  const userBonusPrediction = useQuery(api.bonusPredictions.getMine, isLoaded && user ? {} : "skip") as BonusPredictionView | undefined;
   const [saving, setSaving] = useState<string | null>(null);
   const [savingBonus, setSavingBonus] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<Id<"users"> | null>(null);
+  const matchesByGroup = matchesByGroupQuery ?? {};
+  const teams = teamsQuery ?? [];
+  const players = playersQuery ?? [];
+  const leaderboard = leaderboardQuery ?? [];
+  const userPredictions = userPredictionsQuery ?? [];
   const groups = Object.keys(matchesByGroup).sort();
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const currentGroup = activeGroup ?? groups[0] ?? null;
@@ -119,20 +124,26 @@ export default function Predictions() {
 
   const predictionsLocked = settings?.predictionsLocked ?? false;
   const predictionsExport = useQuery(api.tournamentSettings.getPredictionsExport, isLoaded && user && predictionsLocked ? {} : "skip");
-  const selectedUserPredictions = (useQuery(api.predictions.getByUserId, predictionsLocked && selectedUserId ? { userId: selectedUserId } : "skip") ??
-    []) as MatchPrediction[];
+  const selectedUserPredictionsQuery = useQuery(api.predictions.getByUserId, predictionsLocked && selectedUserId ? { userId: selectedUserId } : "skip") as
+    | MatchPrediction[]
+    | undefined;
   const selectedUserBonusPrediction = useQuery(
     api.bonusPredictions.getByUserId,
     predictionsLocked && selectedUserId ? { userId: selectedUserId } : "skip"
-  ) as BonusPredictionView;
+  ) as BonusPredictionView | undefined;
+  const selectedUserPredictions = selectedUserPredictionsQuery ?? [];
 
   useEffect(() => {
+    if (userBonusPrediction === undefined) {
+      return;
+    }
+
     setBonusForm({
       topScorer: userBonusPrediction?.topScorer ?? null,
       mostGoalsTeam: userBonusPrediction?.mostGoalsTeam ?? null,
       leastConcededTeam: userBonusPrediction?.leastConcededTeam ?? null,
     });
-  }, [userBonusPrediction?.topScorer, userBonusPrediction?.mostGoalsTeam, userBonusPrediction?.leastConcededTeam]);
+  }, [userBonusPrediction]);
 
   const playerOptions: SearchableSelectOption[] = players.map((player) => ({
     value: player._id,
@@ -188,6 +199,15 @@ export default function Predictions() {
         <Loader2 className="w-10 h-10 animate-spin text-gold" />
       </div>
     );
+  }
+
+  const isSignedIn = !!user;
+  const baseQueriesLoading = settings === undefined || matchesByGroupQuery === undefined;
+  const ownPredictionsLoading = isSignedIn && (userPredictionsQuery === undefined || userBonusPrediction === undefined || teamsQuery === undefined || playersQuery === undefined);
+  const lockedPredictionsLoading = predictionsLocked && leaderboardQuery === undefined;
+
+  if (baseQueriesLoading || (predictionsLocked ? lockedPredictionsLoading : ownPredictionsLoading)) {
+    return <PredictionsLoadingState title={predictionsLocked ? "Cargando participantes..." : "Cargando tus predicciones..."} />;
   }
 
   if (predictionsLocked) {
@@ -262,6 +282,8 @@ export default function Predictions() {
           <div className="glass-card p-8 text-center text-gray-500">
             <p className="italic text-sm">Selecciona un participante para ver sus predicciones.</p>
           </div>
+        ) : selectedUserPredictionsQuery === undefined || selectedUserBonusPrediction === undefined ? (
+          <PredictionsLoadingState title="Cargando predicciones del participante..." compact />
         ) : (
           <>
             <BonusPredictionsReadOnly prediction={selectedUserBonusPrediction} />
@@ -326,6 +348,29 @@ export default function Predictions() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function PredictionsLoadingState({ title, compact = false }: { title: string; compact?: boolean }) {
+  return (
+    <div className={compact ? "glass-card p-8" : "space-y-5 animate-slide-up"}>
+      <div className={compact ? "flex flex-col items-center justify-center gap-3 text-center" : "glass-card-gold p-8"}>
+        <div className="flex flex-col items-center justify-center gap-3 text-center">
+          <Loader2 className="h-9 w-9 animate-spin text-gold" />
+          <div>
+            <p className="font-display text-sm font-bold uppercase tracking-wide text-white">{title}</p>
+            <p className="mt-1 text-sm text-gray-500">Preparando la información de tu quiniela.</p>
+          </div>
+        </div>
+      </div>
+      {!compact ? (
+        <div className="grid gap-4">
+          {[0, 1, 2].map((item) => (
+            <div key={item} className="glass-card h-28 animate-pulse bg-white/[0.03]" />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

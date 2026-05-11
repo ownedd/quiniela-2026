@@ -13,12 +13,12 @@ import Link from "next/link";
 
 type LayoutContextValue = {
   isAdmin: boolean | undefined;
-  predictionsLocked: boolean;
+  predictionsLocked: boolean | undefined;
 };
 
 const LayoutContext = createContext<LayoutContextValue>({
   isAdmin: undefined,
-  predictionsLocked: false,
+  predictionsLocked: undefined,
 });
 
 export function useLayoutContext() {
@@ -70,7 +70,8 @@ function HeaderSignOutButton() {
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const isAdmin = useQuery(api.users.isAdmin);
   const settings = useQuery(api.tournamentSettings.get);
-  const predictionsLocked = settings?.predictionsLocked ?? false;
+  const predictionsLocked = settings?.predictionsLocked;
+  const predictionsLabel = predictionsLocked === false ? "Mis Predicciones" : "Predicciones";
 
   return (
     <LayoutContext.Provider value={{ isAdmin, predictionsLocked }}>
@@ -86,7 +87,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                 Inicio
               </Link>
               <Link href="/predictions" className="nav-link hover:text-gold transition-colors">
-                {predictionsLocked ? "Predicciones" : "Mis Predicciones"}
+                {predictionsLabel}
               </Link>
               <Link href="/profile" className="nav-link hover:text-gold transition-colors">
                 Perfil
