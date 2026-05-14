@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Trophy, BarChart3, User, ShieldCheck } from "lucide-react";
+import { Trophy, BarChart3, User, ShieldCheck, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useLayoutContext } from "@/components/LayoutClient";
+import { useLayoutContext, useNavigationFeedback } from "@/components/LayoutClient";
 
 const baseTabs = [
   { href: "/#ranking", label: "Posiciones", icon: BarChart3 },
@@ -15,6 +15,7 @@ const baseTabs = [
 export function BottomNav() {
   const pathname = usePathname();
   const { isAdmin } = useLayoutContext();
+  const { pendingPath, startNavigation } = useNavigationFeedback();
 
   const adminTab = { href: "/admin/results", label: "Admin", icon: ShieldCheck };
   const tabs = isAdmin ? [...baseTabs, adminTab] : baseTabs;
@@ -26,23 +27,31 @@ export function BottomNav() {
     >
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
         {tabs.map(({ href, label, icon: Icon }) => {
-          const isActive =
-            href === "/#ranking" ? pathname === "/" : pathname.startsWith(href.split("#")[0]);
+          const targetPath = href.split("#")[0] || "/";
+          const isActive = href === "/#ranking" ? pathname === "/" : pathname.startsWith(targetPath);
+          const isPending = pendingPath === targetPath;
 
           return (
             <Link
               key={href}
               href={href}
+              onClick={(event) => {
+                if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+                  return;
+                }
+
+                startNavigation(href);
+              }}
               className={cn(
                 "flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-colors min-w-[64px] relative",
-                isActive
+                isActive || isPending
                   ? "text-gold"
                   : "text-gray-500 hover:text-gray-300"
               )}
             >
-              <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />
+              {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />}
               <span className="text-[10px] font-medium font-body">{label}</span>
-              {isActive && (
+              {(isActive || isPending) && (
                 <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-gold animate-dot-pulse" />
               )}
             </Link>

@@ -99,16 +99,10 @@ export const getAllForExport = internalQuery({
         awayScore: prediction.awayScore,
       })),
       bonusPredictions: bonusPredictions.map((prediction) => {
-        const topScorer = prediction.topScorer
-          ? playerMap.get(prediction.topScorer)
-          : null;
+        const topScorer = prediction.topScorer ? playerMap.get(prediction.topScorer) : null;
         const topScorerTeam = topScorer ? teamMap.get(topScorer.teamId) : null;
-        const mostGoalsTeam = prediction.mostGoalsTeam
-          ? teamMap.get(prediction.mostGoalsTeam)
-          : null;
-        const leastConcededTeam = prediction.leastConcededTeam
-          ? teamMap.get(prediction.leastConcededTeam)
-          : null;
+        const mostGoalsTeam = prediction.mostGoalsTeam ? teamMap.get(prediction.mostGoalsTeam) : null;
+        const leastConcededTeam = prediction.leastConcededTeam ? teamMap.get(prediction.leastConcededTeam) : null;
 
         return {
           userId: prediction.userId,
@@ -121,7 +115,6 @@ export const getAllForExport = internalQuery({
     };
   },
 });
-
 
 export const cleanOrphanedPredictions = internalMutation({
   args: {},
@@ -171,9 +164,7 @@ export const submit = mutation({
 
     const existing = await ctx.db
       .query("predictions")
-      .withIndex("by_user_match", (q) =>
-        q.eq("userId", user._id).eq("matchId", args.matchId)
-      )
+      .withIndex("by_user_match", (q) => q.eq("userId", user._id).eq("matchId", args.matchId))
       .first();
 
     if (existing) {
@@ -189,5 +180,39 @@ export const submit = mutation({
         awayScore: args.awayScore,
       });
     }
+  },
+});
+
+export const adminPredictionCounts = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    const predictions = await ctx.db.query("predictions").collect();
+    const matches = await ctx.db.query("matches").collect();
+    const bonusPredictions = await ctx.db.query("bonusPredictions").collect();
+
+    const countsByUserId = new Map<string, number>();
+    for (const prediction of predictions) {
+      countsByUserId.set(prediction.userId, (countsByUserId.get(prediction.userId) ?? 0) + 1);
+    }
+
+    const bonusByUserId = new Set(bonusPredictions.map((prediction) => prediction.userId));
+
+    return users
+      .map((user) => {
+        const predictionCount = countsByUserId.get(user._id) ?? 0;
+
+        return {
+          userId: user._id,
+          name: user.displayName ?? user.name,
+          email: user.email,
+          groupId: user.groupId ?? null,
+          predictionCount,
+          totalMatches: matches.length,
+          missingPredictions: Math.max(matches.length - predictionCount, 0),
+          hasBonusPrediction: bonusByUserId.has(user._id),
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name, "es"));
   },
 });
