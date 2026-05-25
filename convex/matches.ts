@@ -18,15 +18,17 @@ export const list = query({
       ctx.db.query("teams").collect(),
     ]);
     const teamMap = new Map(allTeams.map((t) => [t._id, t]));
-    return allMatches.map((match) => {
-      const homeTeam = teamMap.get(match.homeTeam);
-      const awayTeam = teamMap.get(match.awayTeam);
-      return {
-        ...match,
-        homeTeamDetails: homeTeam ? { name: homeTeam.name, code: homeTeam.code, flagUrl: homeTeam.flagUrl } : null,
-        awayTeamDetails: awayTeam ? { name: awayTeam.name, code: awayTeam.code, flagUrl: awayTeam.flagUrl } : null,
-      };
-    });
+    return allMatches
+      .map((match) => {
+        const homeTeam = teamMap.get(match.homeTeam);
+        const awayTeam = teamMap.get(match.awayTeam);
+        return {
+          ...match,
+          homeTeamDetails: homeTeam ? { name: homeTeam.name, code: homeTeam.code, flagUrl: homeTeam.flagUrl } : null,
+          awayTeamDetails: awayTeam ? { name: awayTeam.name, code: awayTeam.code, flagUrl: awayTeam.flagUrl } : null,
+        };
+      })
+      .sort((a, b) => a.date.localeCompare(b.date));
   },
 });
 
@@ -43,15 +45,17 @@ export const byGroup = query({
         .query("matches")
         .withIndex("by_group", (q) => q.eq("group", group))
         .collect();
-      const populated = matchesInGroup.map((match) => {
-        const homeTeam = teamMap.get(match.homeTeam);
-        const awayTeam = teamMap.get(match.awayTeam);
-        return {
-          ...match,
-          homeTeamDetails: homeTeam ? { name: homeTeam.name, code: homeTeam.code, flagUrl: homeTeam.flagUrl } : null,
-          awayTeamDetails: awayTeam ? { name: awayTeam.name, code: awayTeam.code, flagUrl: awayTeam.flagUrl } : null,
-        };
-      });
+      const populated = matchesInGroup
+        .map((match) => {
+          const homeTeam = teamMap.get(match.homeTeam);
+          const awayTeam = teamMap.get(match.awayTeam);
+          return {
+            ...match,
+            homeTeamDetails: homeTeam ? { name: homeTeam.name, code: homeTeam.code, flagUrl: homeTeam.flagUrl } : null,
+            awayTeamDetails: awayTeam ? { name: awayTeam.name, code: awayTeam.code, flagUrl: awayTeam.flagUrl } : null,
+          };
+        })
+        .sort((a, b) => a.date.localeCompare(b.date));
       grouped[group] = populated;
     }
 
