@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Save, Calendar, Loader2, User, CheckCircle2, Download } from "lucide-react";
+import { Save, Calendar, Loader2, CheckCircle2, Download } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
@@ -153,6 +153,13 @@ export default function Predictions() {
     group: `Grupo ${player.group} · ${player.teamName}`,
   }));
 
+  const participantOptions: SearchableSelectOption[] = leaderboard.map((u) => ({
+    value: u._id,
+    label: u.displayName ?? "Participante",
+    subtitle: `${u.score} pts`,
+    imageUrl: u.image,
+  }));
+
   const teamOptions: SearchableSelectOption[] = [...teams]
     .sort((a, b) => a.name.localeCompare(b.name, "es"))
     .map((team) => ({
@@ -247,34 +254,18 @@ export default function Predictions() {
         </div>
 
         <div className="glass-card p-4 sm:p-5">
-          <label className="block text-xs font-medium text-gold/60 mb-3 uppercase tracking-wider font-display">Participante</label>
           {leaderboard.length === 0 ? (
             <p className="text-gray-500 italic text-sm">No hay participantes en la tabla.</p>
           ) : (
-            <div className="flex flex-wrap gap-2">
-              {leaderboard.map((u) => (
-                <button
-                  key={u._id}
-                  onClick={() => setSelectedUserId(u._id)}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-xl font-medium transition-all text-sm cursor-pointer",
-                    selectedUserId === u._id
-                      ? "bg-gold/20 text-gold border border-gold/30 shadow-lg shadow-gold/10"
-                      : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-300 border border-transparent"
-                  )}
-                >
-                  {u.image ? (
-                    <Image src={u.image} alt="" width={24} height={24} className="rounded-full" unoptimized />
-                  ) : (
-                    <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">
-                      <User className="w-3 h-3 text-gray-400" />
-                    </div>
-                  )}
-                  <span className="truncate max-w-[100px]">{u.displayName ?? "Participante"}</span>
-                  <span className="text-xs opacity-75">({u.score} pts)</span>
-                </button>
-              ))}
-            </div>
+            <SearchableSelect
+              label="Participante"
+              placeholder="Selecciona un participante"
+              options={participantOptions}
+              value={selectedUserId}
+              onChange={(value) => setSelectedUserId((value as Id<"users"> | null) ?? null)}
+              searchPlaceholder="Buscar participante"
+              emptyMessage="No se encontraron participantes."
+            />
           )}
         </div>
 
