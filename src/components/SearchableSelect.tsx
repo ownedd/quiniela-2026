@@ -22,6 +22,7 @@ type SearchableSelectProps = {
   disabled?: boolean;
   searchPlaceholder?: string;
   emptyMessage?: string;
+  autoFocusSearch?: boolean;
   onCreateNew?: (name: string) => Promise<string | null>;
   createNewLabel?: string;
 };
@@ -35,6 +36,7 @@ export function SearchableSelect({
   disabled = false,
   searchPlaceholder = "Buscar...",
   emptyMessage = "No se encontraron resultados.",
+  autoFocusSearch = true,
   onCreateNew,
   createNewLabel = "Agregar",
 }: SearchableSelectProps) {
@@ -141,7 +143,7 @@ export function SearchableSelect({
               <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
                 <Search className="h-4 w-4 text-gold/60" />
                 <input
-                  autoFocus
+                  autoFocus={autoFocusSearch}
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder={searchPlaceholder}

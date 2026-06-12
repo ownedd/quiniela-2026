@@ -265,6 +265,7 @@ export default function Predictions() {
               onChange={(value) => setSelectedUserId((value as Id<"users"> | null) ?? null)}
               searchPlaceholder="Buscar participante"
               emptyMessage="No se encontraron participantes."
+              autoFocusSearch={false}
             />
           )}
         </div>
