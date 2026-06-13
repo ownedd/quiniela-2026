@@ -29,6 +29,8 @@ type AdminMatchView = {
   awayTeam: Id<"teams">;
   homeScorers?: Id<"players">[];
   awayScorers?: Id<"players">[];
+  homeOwnGoals?: number;
+  awayOwnGoals?: number;
   homeTeamDetails?: AdminMatchDetails | null;
   awayTeamDetails?: AdminMatchDetails | null;
 };
@@ -120,7 +122,9 @@ export default function AdminResultsPage() {
     homeScore: number | undefined,
     awayScore: number | undefined,
     homeScorers: Id<"players">[] | undefined,
-    awayScorers: Id<"players">[] | undefined
+    awayScorers: Id<"players">[] | undefined,
+    homeOwnGoals: number | undefined,
+    awayOwnGoals: number | undefined
   ) => {
     setSavingMatch(matchId);
     setMessage(null);
@@ -131,6 +135,8 @@ export default function AdminResultsPage() {
         awayScore: awayScore !== undefined ? awayScore : undefined,
         homeScorers,
         awayScorers,
+        homeOwnGoals,
+        awayOwnGoals,
       });
       setMessage({
         type: "success",
@@ -355,6 +361,25 @@ export default function AdminResultsPage() {
   );
 }
 
+type ScorerSlot = { playerId: Id<"players"> | null; ownGoal: boolean };
+
+function buildInitialScorerSlots(
+  score: number | undefined,
+  scorers: Id<"players">[] | undefined,
+  ownGoals: number | undefined
+): ScorerSlot[] {
+  const total = score ?? 0;
+  if (total <= 0) return [];
+  const realScorers = scorers ?? [];
+  const ownGoalCount = Math.min(Math.max(ownGoals ?? 0, 0), total);
+  const realCount = total - ownGoalCount;
+  return Array.from({ length: total }, (_, index) =>
+    index < realCount
+      ? { playerId: realScorers[index] ?? null, ownGoal: false }
+      : { playerId: null, ownGoal: true }
+  );
+}
+
 function AdminMatchCard({
   match,
   onSave,
@@ -369,7 +394,9 @@ function AdminMatchCard({
     homeScore: number | undefined,
     awayScore: number | undefined,
     homeScorers: Id<"players">[] | undefined,
-    awayScorers: Id<"players">[] | undefined
+    awayScorers: Id<"players">[] | undefined,
+    homeOwnGoals: number | undefined,
+    awayOwnGoals: number | undefined
   ) => void;
   isSaving: boolean;
   players: PlayerOption[];
@@ -382,11 +409,11 @@ function AdminMatchCard({
   const [awayScore, setAwayScore] = useState<string>(
     match.awayScore !== undefined && match.awayScore !== null ? String(match.awayScore) : ""
   );
-  const [homeScorers, setHomeScorers] = useState<Array<Id<"players"> | null>>(
-    (match.homeScorers ?? []).map((playerId) => playerId)
+  const [homeScorers, setHomeScorers] = useState<ScorerSlot[]>(() =>
+    buildInitialScorerSlots(match.homeScore, match.homeScorers, match.homeOwnGoals)
   );
-  const [awayScorers, setAwayScorers] = useState<Array<Id<"players"> | null>>(
-    (match.awayScorers ?? []).map((playerId) => playerId)
+  const [awayScorers, setAwayScorers] = useState<ScorerSlot[]>(() =>
+    buildInitialScorerSlots(match.awayScore, match.awayScorers, match.awayOwnGoals)
   );
 
   const homeName = match.homeTeamDetails?.name || "TBD";
@@ -394,22 +421,22 @@ function AdminMatchCard({
   const homeFlagUrl = match.homeTeamDetails?.flagUrl;
   const awayFlagUrl = match.awayTeamDetails?.flagUrl;
   const isFinished = match.status === "finished";
-  const normalizeScorerSlots = (
-    current: Array<Id<"players"> | null>,
-    size: number
-  ) => {
+  const normalizeScorerSlots = (current: ScorerSlot[], size: number): ScorerSlot[] => {
     if (size <= 0) return [];
-    return Array.from({ length: size }, (_, index) => current[index] ?? null);
+    return Array.from(
+      { length: size },
+      (_, index) => current[index] ?? { playerId: null, ownGoal: false }
+    );
   };
   const homeGoals = homeScore === "" ? 0 : Number(homeScore);
   const awayGoals = awayScore === "" ? 0 : Number(awayScore);
   const normalizedHomeScorers = normalizeScorerSlots(homeScorers, homeGoals);
   const normalizedAwayScorers = normalizeScorerSlots(awayScorers, awayGoals);
-  const originalHomeScorers = match.homeScorers ?? [];
-  const originalAwayScorers = match.awayScorers ?? [];
+  const originalHomeScorers = buildInitialScorerSlots(match.homeScore, match.homeScorers, match.homeOwnGoals);
+  const originalAwayScorers = buildInitialScorerSlots(match.awayScore, match.awayScorers, match.awayOwnGoals);
   const hasChanged =
-    (match.homeScore ?? "") !== homeScore ||
-    (match.awayScore ?? "") !== awayScore ||
+    String(match.homeScore ?? "") !== homeScore ||
+    String(match.awayScore ?? "") !== awayScore ||
     JSON.stringify(normalizedHomeScorers) !== JSON.stringify(originalHomeScorers) ||
     JSON.stringify(normalizedAwayScorers) !== JSON.stringify(originalAwayScorers);
   const bothFilled =
@@ -420,8 +447,9 @@ function AdminMatchCard({
     Number(homeScore) >= 0 &&
     Number(awayScore) >= 0;
   const bothEmpty = homeScore === "" && awayScore === "";
+  const isValidSlot = (slot: ScorerSlot) => slot.ownGoal || slot.playerId !== null;
   const validScorers =
-    normalizedHomeScorers.every(Boolean) && normalizedAwayScorers.every(Boolean);
+    normalizedHomeScorers.every(isValidSlot) && normalizedAwayScorers.every(isValidSlot);
   const canSave =
     hasChanged &&
     ((bothFilled && validScorers) || (bothEmpty && isFinished));
@@ -561,23 +589,29 @@ function AdminMatchCard({
             <p className="text-[11px] font-display uppercase tracking-[0.2em] text-gold/65">
               Goleadores {homeName}
             </p>
-            {normalizedHomeScorers.map((scorer, index) => (
-              <SearchableSelect
+            {normalizedHomeScorers.map((slot, index) => (
+              <ScorerSlotField
                 key={`home-scorer-${index}`}
                 label={`Gol local ${index + 1}`}
-                placeholder="Selecciona goleador"
+                slot={slot}
                 options={homePlayerOptions}
-                value={scorer}
-                onChange={(value) =>
+                searchPlaceholder="Buscar jugador local"
+                ownGoalNote={`Autogol del rival · cuenta para ${homeName}, no para el goleador del torneo.`}
+                onToggleOwnGoal={() =>
                   setHomeScorers((current) =>
                     normalizeScorerSlots(current, homeGoals).map((item, itemIndex) =>
-                      itemIndex === index ? (value as Id<"players"> | null) : item
+                      itemIndex === index ? { playerId: null, ownGoal: !item.ownGoal } : item
                     )
                   )
                 }
-                searchPlaceholder="Buscar jugador local"
+                onChange={(value) =>
+                  setHomeScorers((current) =>
+                    normalizeScorerSlots(current, homeGoals).map((item, itemIndex) =>
+                      itemIndex === index ? { playerId: value as Id<"players"> | null, ownGoal: false } : item
+                    )
+                  )
+                }
                 onCreateNew={handleCreateHomePlayer}
-                createNewLabel="Agregar jugador"
               />
             ))}
           </div>
@@ -585,23 +619,29 @@ function AdminMatchCard({
             <p className="text-[11px] font-display uppercase tracking-[0.2em] text-gold/65">
               Goleadores {awayName}
             </p>
-            {normalizedAwayScorers.map((scorer, index) => (
-              <SearchableSelect
+            {normalizedAwayScorers.map((slot, index) => (
+              <ScorerSlotField
                 key={`away-scorer-${index}`}
                 label={`Gol visitante ${index + 1}`}
-                placeholder="Selecciona goleador"
+                slot={slot}
                 options={awayPlayerOptions}
-                value={scorer}
-                onChange={(value) =>
+                searchPlaceholder="Buscar jugador visitante"
+                ownGoalNote={`Autogol del rival · cuenta para ${awayName}, no para el goleador del torneo.`}
+                onToggleOwnGoal={() =>
                   setAwayScorers((current) =>
                     normalizeScorerSlots(current, awayGoals).map((item, itemIndex) =>
-                      itemIndex === index ? (value as Id<"players"> | null) : item
+                      itemIndex === index ? { playerId: null, ownGoal: !item.ownGoal } : item
                     )
                   )
                 }
-                searchPlaceholder="Buscar jugador visitante"
+                onChange={(value) =>
+                  setAwayScorers((current) =>
+                    normalizeScorerSlots(current, awayGoals).map((item, itemIndex) =>
+                      itemIndex === index ? { playerId: value as Id<"players"> | null, ownGoal: false } : item
+                    )
+                  )
+                }
                 onCreateNew={handleCreateAwayPlayer}
-                createNewLabel="Agregar jugador"
               />
             ))}
           </div>
@@ -615,8 +655,14 @@ function AdminMatchCard({
               match._id,
               bothEmpty ? undefined : Number(homeScore),
               bothEmpty ? undefined : Number(awayScore),
-              bothEmpty ? undefined : normalizedHomeScorers.filter(Boolean) as Id<"players">[],
-              bothEmpty ? undefined : normalizedAwayScorers.filter(Boolean) as Id<"players">[]
+              bothEmpty
+                ? undefined
+                : (normalizedHomeScorers.filter((slot) => !slot.ownGoal).map((slot) => slot.playerId).filter(Boolean) as Id<"players">[]),
+              bothEmpty
+                ? undefined
+                : (normalizedAwayScorers.filter((slot) => !slot.ownGoal).map((slot) => slot.playerId).filter(Boolean) as Id<"players">[]),
+              bothEmpty ? undefined : normalizedHomeScorers.filter((slot) => slot.ownGoal).length,
+              bothEmpty ? undefined : normalizedAwayScorers.filter((slot) => slot.ownGoal).length
             )
           }
           disabled={!canSave || isSaving}
@@ -638,10 +684,68 @@ function AdminMatchCard({
         </button>
         {bothFilled && !validScorers ? (
           <p className="mt-3 text-xs text-gold/80">
-            Debes seleccionar un goleador por cada gol registrado.
+            Selecciona un goleador por cada gol o marcalo como autogol.
           </p>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+function ScorerSlotField({
+  label,
+  slot,
+  options,
+  searchPlaceholder,
+  ownGoalNote,
+  onToggleOwnGoal,
+  onChange,
+  onCreateNew,
+}: {
+  label: string;
+  slot: ScorerSlot;
+  options: SearchableSelectOption[];
+  searchPlaceholder: string;
+  ownGoalNote: string;
+  onToggleOwnGoal: () => void;
+  onChange: (value: string | null) => void;
+  onCreateNew: (name: string) => Promise<Id<"players">>;
+}) {
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={onToggleOwnGoal}
+        className={cn(
+          "absolute right-0 top-0 z-[1] shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide font-display transition-all cursor-pointer",
+          slot.ownGoal
+            ? "bg-gold/20 text-gold border border-gold/30"
+            : "bg-white/5 text-gray-400 border border-transparent hover:bg-white/10 hover:text-gray-200"
+        )}
+      >
+        Autogol
+      </button>
+      {slot.ownGoal ? (
+        <div className="space-y-2">
+          <span className="block text-[11px] font-medium uppercase tracking-[0.2em] text-gold/60 font-display">
+            {label}
+          </span>
+          <div className="flex min-h-14 items-center rounded-2xl border border-gold/20 bg-gold/5 px-4 py-3 text-xs text-gold/85">
+            {ownGoalNote}
+          </div>
+        </div>
+      ) : (
+        <SearchableSelect
+          label={label}
+          placeholder="Selecciona goleador"
+          options={options}
+          value={slot.playerId}
+          onChange={onChange}
+          searchPlaceholder={searchPlaceholder}
+          onCreateNew={onCreateNew}
+          createNewLabel="Agregar jugador"
+        />
+      )}
     </div>
   );
 }

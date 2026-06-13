@@ -153,6 +153,8 @@ export const setResult = mutation({
     awayScore: v.optional(v.number()),
     homeScorers: v.optional(v.array(v.id("players"))),
     awayScorers: v.optional(v.array(v.id("players"))),
+    homeOwnGoals: v.optional(v.number()),
+    awayOwnGoals: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
@@ -171,15 +173,29 @@ export const setResult = mutation({
       const a = args.awayScore!;
       if (h < 0 || a < 0) throw new Error("Los marcadores no pueden ser negativos");
 
+      const homeOwnGoals = args.homeOwnGoals ?? 0;
+      const awayOwnGoals = args.awayOwnGoals ?? 0;
+
+      if (homeOwnGoals < 0 || awayOwnGoals < 0) {
+        throw new Error("Los autogoles no pueden ser negativos");
+      }
+      if (!Number.isInteger(homeOwnGoals) || !Number.isInteger(awayOwnGoals)) {
+        throw new Error("Los autogoles deben ser numeros enteros");
+      }
+      if (homeOwnGoals > h || awayOwnGoals > a) {
+        throw new Error("Los autogoles no pueden superar el numero de goles del equipo");
+      }
+
       const homeScorers = args.homeScorers ?? [];
       const awayScorers = args.awayScorers ?? [];
 
-      if (homeScorers.length !== h) {
-        throw new Error("Debes indicar exactamente un goleador por cada gol del equipo local");
+      // Los autogoles cuentan para el marcador pero no llevan goleador propio.
+      if (homeScorers.length !== h - homeOwnGoals) {
+        throw new Error("Debes indicar exactamente un goleador por cada gol del equipo local que no sea autogol");
       }
 
-      if (awayScorers.length !== a) {
-        throw new Error("Debes indicar exactamente un goleador por cada gol del equipo visitante");
+      if (awayScorers.length !== a - awayOwnGoals) {
+        throw new Error("Debes indicar exactamente un goleador por cada gol del equipo visitante que no sea autogol");
       }
 
       for (const playerId of homeScorers) {
@@ -201,6 +217,8 @@ export const setResult = mutation({
         awayScore: a,
         homeScorers,
         awayScorers,
+        homeOwnGoals,
+        awayOwnGoals,
         status: "finished",
       });
     } else {
@@ -209,6 +227,8 @@ export const setResult = mutation({
         awayScore: undefined,
         homeScorers: undefined,
         awayScorers: undefined,
+        homeOwnGoals: undefined,
+        awayOwnGoals: undefined,
         status: "scheduled",
       });
     }

@@ -66,6 +66,10 @@ export default defineSchema({
     awayScore: v.optional(v.number()),
     homeScorers: v.optional(v.array(v.id("players"))),
     awayScorers: v.optional(v.array(v.id("players"))),
+    // Cantidad de goles del equipo que fueron autogoles del rival.
+    // Cuentan para el marcador pero no para el goleador del torneo.
+    homeOwnGoals: v.optional(v.number()),
+    awayOwnGoals: v.optional(v.number()),
     status: v.string(),
     group: v.string(),
     venue: v.string(),
