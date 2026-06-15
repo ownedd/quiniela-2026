@@ -41,10 +41,14 @@ export default function Home() {
   const { isLoaded, user } = useUser();
   const users = useQuery(api.users.leaderboard) as LeaderboardRow[] | undefined;
   const settings = useQuery(api.tournamentSettings.get);
+  const predictionsLocked = settings?.predictionsLocked ?? false;
   const teamsQuery = useQuery(api.teams.list);
   const playersQuery = useQuery(api.bonusPredictions.getPlayers);
   const matchesByGroupQuery = useQuery(api.matches.byGroup);
-  const userPredictionsQuery = useQuery(api.predictions.getMine, isLoaded && user ? {} : "skip");
+  const userPredictionsQuery = useQuery(
+    api.predictions.getMine,
+    isLoaded && user && settings !== undefined && !predictionsLocked ? {} : "skip"
+  );
   const matchesByGroup = matchesByGroupQuery ?? {};
   const userPredictions = userPredictionsQuery ?? [];
   const [showAll, setShowAll] = useState(false);
@@ -73,7 +77,6 @@ export default function Home() {
   const completedPredictions = predictionsProgressLoading ? undefined : userPredictions.length;
   const missingPredictions = totalMatches === undefined || completedPredictions === undefined ? undefined : totalMatches - completedPredictions;
   const missingPredictionsCount = missingPredictions ?? 0;
-  const predictionsLocked = settings?.predictionsLocked ?? false;
 
   const autoBonusDisplay = useMemo(() => {
     if (!predictionsLocked) {
