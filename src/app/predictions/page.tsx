@@ -503,7 +503,7 @@ function BonusPredictionsReadOnly({ prediction }: { prediction: BonusPredictionV
 function PredictionHighlightCard({ title, value, subtitle, imageUrl }: { title: string; value: string; subtitle?: string; imageUrl?: string | null }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-      <div className="mb-3 text-[11px] font-display uppercase tracking-[0.22em] text-gold/60">{title}</div>
+      <div className="mb-3 min-h-8 text-[11px] font-display uppercase leading-4 tracking-[0.22em] text-gold/60">{title}</div>
       <div className="flex items-center gap-3">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/5">
           {imageUrl ? (
