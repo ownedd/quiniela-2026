@@ -53,6 +53,18 @@ type TeamOption = {
   group: string;
 };
 
+type MatchStatusFilter = "unfinished" | "finished" | "all";
+
+const MATCH_STATUS_FILTER_OPTIONS: { value: MatchStatusFilter; label: string }[] = [
+  { value: "unfinished", label: "No finalizados" },
+  { value: "finished", label: "Finalizados" },
+  { value: "all", label: "Todos" },
+];
+
+const EMPTY_MATCHES_BY_GROUP: Record<string, AdminMatchView[]> = {};
+const EMPTY_TEAMS: TeamOption[] = [];
+const EMPTY_PLAYERS: PlayerOption[] = [];
+
 function LocalDateTime({
   value,
   options,
@@ -74,9 +86,10 @@ export default function AdminResultsPage() {
   const bootstrapAsFirstAdmin = useMutation(api.users.bootstrapAsFirstAdmin);
   const settings = useQuery(api.tournamentSettings.get);
   const exportSummary = useQuery(api.predictionsExports.adminSummary, isLoaded && user && isAdmin ? {} : "skip");
-  const matchesByGroup = (useQuery(api.matches.byGroup) ?? {}) as Record<string, AdminMatchView[]>;
-  const teams = (useQuery(api.teams.list) ?? []) as TeamOption[];
-  const players = (useQuery(api.bonusPredictions.getPlayers) ?? []) as PlayerOption[];
+  const matchesByGroup =
+    (useQuery(api.matches.byGroup) as Record<string, AdminMatchView[]> | undefined) ?? EMPTY_MATCHES_BY_GROUP;
+  const teams = (useQuery(api.teams.list) as TeamOption[] | undefined) ?? EMPTY_TEAMS;
+  const players = (useQuery(api.bonusPredictions.getPlayers) as PlayerOption[] | undefined) ?? EMPTY_PLAYERS;
   const setPredictionsLocked = useMutation(api.tournamentSettings.setPredictionsLocked);
   const setResult = useMutation(api.matches.setResult);
   const addPlayer = useMutation(api.bonusPredictions.addPlayer);
@@ -86,18 +99,19 @@ export default function AdminResultsPage() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const groups = Object.keys(matchesByGroup).sort();
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
+  const [matchStatusFilter, setMatchStatusFilter] = useState<MatchStatusFilter>("unfinished");
 
   useEffect(() => {
     if (groups.length > 0 && !activeGroup) setActiveGroup(groups[0]);
   }, [groups, activeGroup]);
 
-  const playerOptions: SearchableSelectOption[] = players.map((player) => ({
-    value: player._id,
-    label: player.name,
-    subtitle: player.teamName,
-    imageUrl: player.teamFlagUrl,
-    group: `Grupo ${player.group} · ${player.teamName}`,
-  }));
+  const selectedGroup = activeGroup ?? groups[0];
+  const selectedGroupMatches = selectedGroup ? matchesByGroup[selectedGroup] ?? [] : [];
+  const visibleMatches = selectedGroupMatches.filter((match) => {
+    if (matchStatusFilter === "all") return true;
+    const isFinished = match.status === "finished";
+    return matchStatusFilter === "finished" ? isFinished : !isFinished;
+  });
 
   const autoBonusDisplay = useMemo(
     () =>
@@ -316,28 +330,47 @@ export default function AdminResultsPage() {
       <div>
         <h3 className="font-bold mb-4 font-display uppercase tracking-wide">Resultados oficiales</h3>
         {groups.length > 0 && (
-          <div className="overflow-x-auto md:overflow-visible scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 mb-5">
-            <div className="flex gap-2 flex-nowrap md:flex-wrap w-max md:w-full">
-              {groups.map((group) => (
-                <button
-                  key={group}
-                  onClick={() => setActiveGroup(group)}
-                  className={cn(
-                    "px-4 py-2 rounded-full font-bold text-sm transition-all whitespace-nowrap cursor-pointer font-display",
-                    activeGroup === group
-                      ? "bg-gradient-to-r from-gold to-gold-dark text-[#0a0a0a] shadow-lg shadow-gold/20"
-                      : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-300"
-                  )}
-                >
-                  Grupo {group}
-                </button>
-              ))}
+          <div className="mb-5 space-y-3">
+            <div className="overflow-x-auto md:overflow-visible scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
+              <div className="flex gap-2 flex-nowrap md:flex-wrap w-max md:w-full">
+                {groups.map((group) => (
+                  <button
+                    key={group}
+                    onClick={() => setActiveGroup(group)}
+                    className={cn(
+                      "px-4 py-2 rounded-full font-bold text-sm transition-all whitespace-nowrap cursor-pointer font-display",
+                      activeGroup === group
+                        ? "bg-gradient-to-r from-gold to-gold-dark text-[#0a0a0a] shadow-lg shadow-gold/20"
+                        : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-300"
+                    )}
+                  >
+                    Grupo {group}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <label className="flex flex-col gap-2 text-xs font-display uppercase tracking-[0.18em] text-gold/70 sm:max-w-xs">
+              Estado de partidos
+              <select
+                value={matchStatusFilter}
+                onChange={(event) => setMatchStatusFilter(event.target.value as MatchStatusFilter)}
+                className="w-full cursor-pointer rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-bold normal-case tracking-normal text-gray-100 outline-none transition-all focus:border-gold focus:ring-1 focus:ring-gold"
+              >
+                {MATCH_STATUS_FILTER_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value} className="bg-[#0a0a0a] text-gray-100">
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="text-xs text-gray-500">
+              Mostrando {visibleMatches.length} de {selectedGroupMatches.length} partidos
             </div>
           </div>
         )}
         <div className="grid gap-4 stagger-children">
-          {(activeGroup ?? groups[0]) && matchesByGroup[activeGroup ?? groups[0]]?.length > 0 ? (
-            matchesByGroup[activeGroup ?? groups[0]].map((match, idx, arr) => (
+          {selectedGroup && visibleMatches.length > 0 ? (
+            visibleMatches.map((match, idx, arr) => (
               <AdminMatchCard
                 key={match._id}
                 match={match}
@@ -351,7 +384,11 @@ export default function AdminResultsPage() {
           ) : (
             <div className="glass-card p-8 text-center text-gray-500">
               <p className="italic text-sm">
-                {groups.length === 0 ? "Cargando partidos o no hay partidos disponibles..." : "Selecciona un grupo para ver los partidos."}
+                {groups.length === 0
+                  ? "Cargando partidos o no hay partidos disponibles..."
+                  : selectedGroupMatches.length === 0
+                    ? "Selecciona un grupo para ver los partidos."
+                    : "No hay partidos que coincidan con este filtro."}
               </p>
             </div>
           )}

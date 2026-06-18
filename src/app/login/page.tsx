@@ -32,7 +32,12 @@ export default function Login() {
             socialButtonsBlockButton:
               "bg-white/[0.04] border border-white/10 hover:bg-white/[0.07] hover:border-[rgba(212,168,67,0.4)] text-white transition-colors",
             socialButtonsBlockButtonText: "text-white font-medium",
-            socialButtonsProviderIcon: "brightness-100",
+            socialButtonsProviderIcon:
+              "size-4 shrink-0 bg-center bg-contain bg-no-repeat text-transparent",
+            socialButtonsProviderIcon__google: {
+              backgroundImage: "url('/google.svg')",
+              content: "url('/google.svg')",
+            },
             dividerLine: "bg-white/10",
             dividerText: "text-gray-500 uppercase text-xs tracking-wider",
             formFieldLabel: "text-gray-300 font-medium text-sm",
