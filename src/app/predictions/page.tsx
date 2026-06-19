@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Save, Calendar, Loader2, CheckCircle2, Download } from "lucide-react";
+import { Save, Calendar, Loader2, CheckCircle2, Download, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
@@ -82,6 +82,8 @@ type BonusPredictionView = {
   } | null;
 } | null;
 
+const SPECIAL_PREDICTIONS_VISIBILITY_KEY = "quiniela:show-special-predictions";
+
 function LocalDateTime({ value, options }: { value: string; options?: Intl.DateTimeFormatOptions }) {
   return (
     <time dateTime={value} suppressHydrationWarning>
@@ -92,15 +94,20 @@ function LocalDateTime({ value, options }: { value: string; options?: Intl.DateT
 
 export default function Predictions() {
   const { user, isLoaded } = useUser();
+  const [showSpecialPredictions, setShowSpecialPredictions] = useState(true);
+  const [specialPredictionsPreferenceLoaded, setSpecialPredictionsPreferenceLoaded] = useState(false);
+  const shouldLoadSpecialPredictions = specialPredictionsPreferenceLoaded && showSpecialPredictions;
   const matchesByGroupQuery = useQuery(api.matches.byGroup) as Record<string, MatchView[]> | undefined;
-  const teamsQuery = useQuery(api.teams.list) as TeamOption[] | undefined;
-  const playersQuery = useQuery(api.bonusPredictions.getPlayers) as PlayerOption[] | undefined;
+  const teamsQuery = useQuery(api.teams.list, shouldLoadSpecialPredictions ? {} : "skip") as TeamOption[] | undefined;
+  const playersQuery = useQuery(api.bonusPredictions.getPlayers, shouldLoadSpecialPredictions ? {} : "skip") as PlayerOption[] | undefined;
   const settings = useQuery(api.tournamentSettings.get);
   const leaderboardQuery = useQuery(api.users.leaderboard) as LeaderboardUser[] | undefined;
   const submitPrediction = useMutation(api.predictions.submit);
   const submitBonusPrediction = useMutation(api.bonusPredictions.submit);
   const userPredictionsQuery = useQuery(api.predictions.getMine, isLoaded && user ? {} : "skip") as MatchPrediction[] | undefined;
-  const userBonusPrediction = useQuery(api.bonusPredictions.getMine, isLoaded && user ? {} : "skip") as BonusPredictionView | undefined;
+  const userBonusPrediction = useQuery(api.bonusPredictions.getMine, isLoaded && user && shouldLoadSpecialPredictions ? {} : "skip") as
+    | BonusPredictionView
+    | undefined;
   const [saving, setSaving] = useState<string | null>(null);
   const [savingBonus, setSavingBonus] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<Id<"users"> | null>(null);
@@ -129,12 +136,28 @@ export default function Predictions() {
     | undefined;
   const selectedUserBonusPrediction = useQuery(
     api.bonusPredictions.getByUserId,
-    predictionsLocked && selectedUserId ? { userId: selectedUserId } : "skip"
+    predictionsLocked && selectedUserId && shouldLoadSpecialPredictions ? { userId: selectedUserId } : "skip"
   ) as BonusPredictionView | undefined;
   const selectedUserPredictions = selectedUserPredictionsQuery ?? [];
 
   useEffect(() => {
-    if (userBonusPrediction === undefined) {
+    const storedValue = window.localStorage.getItem(SPECIAL_PREDICTIONS_VISIBILITY_KEY);
+    if (storedValue === "false") {
+      setShowSpecialPredictions(false);
+    }
+    setSpecialPredictionsPreferenceLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!specialPredictionsPreferenceLoaded) {
+      return;
+    }
+
+    window.localStorage.setItem(SPECIAL_PREDICTIONS_VISIBILITY_KEY, showSpecialPredictions ? "true" : "false");
+  }, [showSpecialPredictions, specialPredictionsPreferenceLoaded]);
+
+  useEffect(() => {
+    if (!showSpecialPredictions || userBonusPrediction === undefined) {
       return;
     }
 
@@ -143,7 +166,7 @@ export default function Predictions() {
       mostGoalsTeam: userBonusPrediction?.mostGoalsTeam ?? null,
       leastConcededTeam: userBonusPrediction?.leastConcededTeam ?? null,
     });
-  }, [userBonusPrediction]);
+  }, [showSpecialPredictions, userBonusPrediction]);
 
   const playerOptions: SearchableSelectOption[] = players.map((player) => ({
     value: player._id,
@@ -210,7 +233,9 @@ export default function Predictions() {
 
   const isSignedIn = !!user;
   const baseQueriesLoading = settings === undefined || matchesByGroupQuery === undefined;
-  const ownPredictionsLoading = isSignedIn && (userPredictionsQuery === undefined || userBonusPrediction === undefined || teamsQuery === undefined || playersQuery === undefined);
+  const ownSpecialPredictionsLoading =
+    showSpecialPredictions && (!specialPredictionsPreferenceLoaded || userBonusPrediction === undefined || teamsQuery === undefined || playersQuery === undefined);
+  const ownPredictionsLoading = isSignedIn && (userPredictionsQuery === undefined || ownSpecialPredictionsLoading);
   const lockedPredictionsLoading = predictionsLocked && leaderboardQuery === undefined;
 
   if (baseQueriesLoading || (predictionsLocked ? lockedPredictionsLoading : ownPredictionsLoading)) {
@@ -220,9 +245,12 @@ export default function Predictions() {
   if (predictionsLocked) {
     return (
       <div className="space-y-5 animate-slide-up">
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-bold font-display uppercase tracking-wide">Predicciones</h2>
-          <p className="text-gray-400 text-sm mt-1">Selecciona un participante para ver sus predicciones</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold font-display uppercase tracking-wide">Predicciones</h2>
+            <p className="text-gray-400 text-sm mt-1">Selecciona un participante para ver sus predicciones</p>
+          </div>
+          <SpecialPredictionsToggle showSpecialPredictions={showSpecialPredictions} onToggle={() => setShowSpecialPredictions((current) => !current)} />
         </div>
 
         <div className="glass-card p-4 sm:p-5">
@@ -274,11 +302,11 @@ export default function Predictions() {
           <div className="glass-card p-8 text-center text-gray-500">
             <p className="italic text-sm">Selecciona un participante para ver sus predicciones.</p>
           </div>
-        ) : selectedUserPredictionsQuery === undefined || selectedUserBonusPrediction === undefined ? (
+        ) : selectedUserPredictionsQuery === undefined || (showSpecialPredictions && selectedUserBonusPrediction === undefined) ? (
           <PredictionsLoadingState title="Cargando predicciones del participante..." compact />
         ) : (
           <>
-            <BonusPredictionsReadOnly prediction={selectedUserBonusPrediction} />
+            {showSpecialPredictions ? <BonusPredictionsReadOnly prediction={selectedUserBonusPrediction ?? null} /> : null}
             <GroupTabs groups={groups} activeGroup={currentGroup} onChange={setActiveGroup} />
             <div className="grid gap-4 stagger-children">
               {currentGroup && matchesByGroup[currentGroup]?.length > 0 ? (
@@ -303,20 +331,25 @@ export default function Predictions() {
 
   return (
     <div className="space-y-5 animate-slide-up">
-      <div>
-        <h2 className="text-2xl sm:text-3xl font-bold font-display uppercase tracking-wide">Mis Predicciones</h2>
-        <p className="text-gray-400 text-sm mt-1">Define tus resultados antes del inicio del mundial</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-bold font-display uppercase tracking-wide">Mis Predicciones</h2>
+          <p className="text-gray-400 text-sm mt-1">Define tus resultados antes del inicio del mundial</p>
+        </div>
+        <SpecialPredictionsToggle showSpecialPredictions={showSpecialPredictions} onToggle={() => setShowSpecialPredictions((current) => !current)} />
       </div>
 
-      <BonusPredictionsEditor
-        values={bonusForm}
-        onChange={setBonusForm}
-        onSave={handleSaveBonus}
-        hasChanges={hasBonusChanges}
-        isSaving={savingBonus}
-        playerOptions={playerOptions}
-        teamOptions={teamOptions}
-      />
+      {showSpecialPredictions ? (
+        <BonusPredictionsEditor
+          values={bonusForm}
+          onChange={setBonusForm}
+          onSave={handleSaveBonus}
+          hasChanges={hasBonusChanges}
+          isSaving={savingBonus}
+          playerOptions={playerOptions}
+          teamOptions={teamOptions}
+        />
+      ) : null}
 
       <GroupTabs groups={groups} activeGroup={currentGroup} onChange={setActiveGroup} />
 
@@ -341,6 +374,27 @@ export default function Predictions() {
         )}
       </div>
     </div>
+  );
+}
+
+function SpecialPredictionsToggle({
+  showSpecialPredictions,
+  onToggle,
+}: {
+  showSpecialPredictions: boolean;
+  onToggle: () => void;
+}) {
+  const Icon = showSpecialPredictions ? EyeOff : Eye;
+
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-bold text-gray-300 transition-all hover:border-gold/40 hover:bg-gold/10 hover:text-gold cursor-pointer"
+    >
+      <Icon className="h-4 w-4" />
+      {showSpecialPredictions ? "Ocultar especiales" : "Mostrar especiales"}
+    </button>
   );
 }
 
