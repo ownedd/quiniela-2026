@@ -70,6 +70,7 @@ export default defineSchema({
     // Cuentan para el marcador pero no para el goleador del torneo.
     homeOwnGoals: v.optional(v.number()),
     awayOwnGoals: v.optional(v.number()),
+    resultUpdatedAt: v.optional(v.number()),
     status: v.string(),
     group: v.string(),
     venue: v.string(),

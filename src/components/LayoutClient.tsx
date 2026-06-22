@@ -113,7 +113,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       <NavigationContext.Provider value={{ pendingPath: visiblePendingPath, startNavigation }}>
       {visiblePendingPath ? <RouteTransitionIndicator /> : null}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6 md:py-8">
-        <header className="flex items-center justify-between gap-4 mb-6 sm:mb-8 md:mb-12 border-b border-white/5 pb-4 sm:pb-6 md:pb-8">
+        <header className="flex items-center justify-between gap-4 mb-5 sm:mb-6 md:mb-8 border-b border-white/5 pb-4 sm:pb-6 md:pb-8">
           <NavigationLink href="/" className="group">
             <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-black gradient-text tracking-tight uppercase">Quiniela 2026</h1>
           </NavigationLink>

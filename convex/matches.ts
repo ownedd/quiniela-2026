@@ -160,6 +160,7 @@ export const setResult = mutation({
     await requireAdmin(ctx);
     const match = await ctx.db.get(args.matchId);
     if (!match) throw new Error("Partido no encontrado");
+    const resultUpdatedAt = Date.now();
 
     const hasHome = args.homeScore !== undefined && args.homeScore !== null;
     const hasAway = args.awayScore !== undefined && args.awayScore !== null;
@@ -219,6 +220,7 @@ export const setResult = mutation({
         awayScorers,
         homeOwnGoals,
         awayOwnGoals,
+        resultUpdatedAt,
         status: "finished",
       });
     } else {
@@ -229,6 +231,7 @@ export const setResult = mutation({
         awayScorers: undefined,
         homeOwnGoals: undefined,
         awayOwnGoals: undefined,
+        resultUpdatedAt,
         status: "scheduled",
       });
     }

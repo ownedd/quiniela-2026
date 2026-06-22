@@ -31,6 +31,13 @@ type RankedLeaderboardRow = LeaderboardRow & {
   rank: number;
 };
 
+type MatchWithTeams = {
+  _id: Id<"matches">;
+  homeTeamDetails: { name: string; code: string; flagUrl?: string } | null;
+  awayTeamDetails: { name: string; code: string; flagUrl?: string } | null;
+  resultUpdatedAt?: number;
+};
+
 const emptyAutoBonusDisplay: AutoBonusDisplay = {
   topScorerLines: [],
   mostGoalsLines: [],
@@ -49,9 +56,36 @@ export default function Home() {
     api.predictions.getMine,
     isLoaded && user && settings !== undefined && !predictionsLocked ? {} : "skip"
   );
-  const matchesByGroup = matchesByGroupQuery ?? {};
+  const matchesByGroup = useMemo(() => matchesByGroupQuery ?? {}, [matchesByGroupQuery]);
   const userPredictions = userPredictionsQuery ?? [];
   const [showAll, setShowAll] = useState(false);
+
+  const lastUpdatedMatch = useMemo(() => {
+    const allMatches = Object.values(matchesByGroup).flat() as MatchWithTeams[];
+
+    return allMatches.reduce<MatchWithTeams | null>((latest, match) => {
+      if (match.resultUpdatedAt === undefined) return latest;
+      if (latest === null || match.resultUpdatedAt > (latest.resultUpdatedAt ?? 0)) return match;
+      return latest;
+    }, null);
+  }, [matchesByGroup]);
+
+  const lastUpdatedMatchLabel = useMemo(() => {
+    if (!lastUpdatedMatch?.resultUpdatedAt) return null;
+
+    const homeTeamName = lastUpdatedMatch.homeTeamDetails?.name ?? "Local";
+    const awayTeamName = lastUpdatedMatch.awayTeamDetails?.name ?? "Visitante";
+    const updatedTime = new Intl.DateTimeFormat("es-VE", {
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(lastUpdatedMatch.resultUpdatedAt));
+    const updatedDate = new Intl.DateTimeFormat("es-VE", {
+      day: "2-digit",
+      month: "2-digit",
+    }).format(new Date(lastUpdatedMatch.resultUpdatedAt));
+
+    return `Ultimo partido actualizado: ${homeTeamName} vs ${awayTeamName} a las ${updatedTime} del ${updatedDate}`;
+  }, [lastUpdatedMatch]);
 
   const rankedUsers = useMemo<RankedLeaderboardRow[] | undefined>(() => {
     if (!users) return undefined;
@@ -100,15 +134,25 @@ export default function Home() {
   return (
     <div className="space-y-6 animate-slide-up">
       {/* Leaderboard */}
-      <section className="glass-card-gold p-4 sm:p-6">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="p-2 rounded-lg bg-gold/10 animate-pulse-glow">
-            <Trophy className="text-gold w-5 h-5" />
+      <div className="space-y-2">
+        {lastUpdatedMatchLabel ? (
+          <div className="px-1">
+            <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-gold/15 bg-gold/[0.06] px-3 py-1 text-[11px] font-medium text-gold-light/90">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-gold shadow-[0_0_8px_rgba(212,168,67,0.7)]" />
+              <span className="truncate">{lastUpdatedMatchLabel}</span>
+            </div>
           </div>
-          <h2 className="text-lg sm:text-xl font-bold font-display uppercase tracking-wide">Tabla de Posiciones</h2>
-        </div>
+        ) : null}
 
-        <div className="space-y-2 stagger-children">
+        <section className="glass-card-gold p-4 sm:p-6">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-gold/10 animate-pulse-glow">
+              <Trophy className="text-gold w-5 h-5" />
+            </div>
+            <h2 className="text-lg sm:text-xl font-bold font-display uppercase tracking-wide">Tabla de Posiciones</h2>
+          </div>
+
+          <div className="space-y-2 stagger-children">
           {users === undefined ? (
             <div className="flex flex-col items-center gap-2 py-8">
               <Loader2 className="w-8 h-8 animate-spin text-gold" />
@@ -196,7 +240,8 @@ export default function Home() {
             Mostrar menos
           </button>
         )}
-      </section>
+        </section>
+      </div>
 
       {predictionsLocked ? <AutoBonusResultsSection variant="home" display={autoBonusDisplay} /> : null}
 
