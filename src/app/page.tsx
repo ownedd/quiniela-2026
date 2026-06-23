@@ -156,8 +156,9 @@ export default function Home() {
     const isCurrentUser = leaderboardUser._id === currentUser?._id;
     const displayName = leaderboardUser.displayName ?? "Participante";
     const isClickable = predictionsLocked;
+    const bonusPoints = leaderboardUser.bonusPoints ?? 0;
     const rowClassName = cn(
-      "flex items-center gap-3 rounded-xl border transition-all",
+      "grid grid-cols-[1.75rem_2.5rem_minmax(0,1fr)_auto_auto] items-center gap-2 rounded-xl border transition-all sm:gap-3",
       options?.compact ? "p-3 bg-gold/[0.06] border-gold/25" : "p-3",
       isClickable ? "hover-lift hover:bg-white/[0.04] focus-visible:bg-white/[0.04]" : "",
       leaderboardUser.rank === 1
@@ -172,7 +173,7 @@ export default function Home() {
 
     const rowContent = (
       <>
-        <div className="flex items-center justify-center w-8 shrink-0">
+        <div className="flex items-center justify-center">
           {leaderboardUser.rank === 1 ? (
             <>
               <span className="sr-only">Puesto 1</span>
@@ -206,16 +207,17 @@ export default function Home() {
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className={`font-semibold text-sm truncate ${leaderboardUser.rank === 1 ? "text-gold-light" : ""}`}>{displayName}</p>
+          <div className="flex min-w-0 items-center gap-2">
+            <p className={`min-w-0 truncate text-[15px] font-semibold leading-tight ${leaderboardUser.rank === 1 ? "text-gold-light" : ""}`}>{displayName}</p>
             {isCurrentUser ? (
-              <span className="rounded-full border border-gold/20 bg-gold/10 px-2 py-0.5 text-[11px] font-bold text-gold">Tú</span>
+              <span className="shrink-0 rounded-full border border-gold/20 bg-gold/10 px-2 py-0.5 text-[11px] font-bold text-gold">Tú</span>
             ) : null}
           </div>
-          {options?.compact ? <p className="mt-0.5 text-xs text-gray-500">Tu posición en la tabla del grupo</p> : null}
+          {options?.compact ? <p className="mt-0.5 text-xs text-gray-500">Puesto #{leaderboardUser.rank}</p> : null}
+          {bonusPoints > 0 ? <p className="mt-0.5 text-xs text-gray-500 font-display tabular-nums sm:hidden">+{bonusPoints} especiales</p> : null}
         </div>
 
-        <div className="flex flex-col items-end gap-0.5 shrink-0 text-right">
+        <div className="flex min-w-[4.25rem] flex-col items-end gap-0.5 text-right">
           <span
             className={`px-3 py-1 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap font-display ${
               leaderboardUser.rank === 1 ? "bg-gold/15 text-gold border border-gold/30" : "bg-white/5 text-gray-300 border border-white/10"
@@ -223,14 +225,14 @@ export default function Home() {
           >
             {leaderboardUser.score} pts
           </span>
-          {(leaderboardUser.bonusPoints ?? 0) > 0 ? (
-            <span className="text-xs text-gray-500 font-display tabular-nums">
-              incluye {leaderboardUser.bonusPoints ?? 0} de especiales
+          {bonusPoints > 0 ? (
+            <span className="hidden text-xs text-gray-500 font-display tabular-nums sm:block">
+              incluye {bonusPoints} de especiales
             </span>
           ) : null}
         </div>
 
-        {isClickable ? <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0 text-gold/70" /> : null}
+        {isClickable ? <ChevronRight aria-hidden="true" className="h-4 w-4 text-gold/70" /> : <span aria-hidden="true" />}
       </>
     );
 
