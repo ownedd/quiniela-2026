@@ -159,7 +159,7 @@ export default function Home() {
     const bonusPoints = leaderboardUser.bonusPoints ?? 0;
     const rowClassName = cn(
       "grid grid-cols-[1.75rem_2.5rem_minmax(0,1fr)_auto_auto] items-center gap-2 rounded-xl border transition-all sm:gap-3",
-      options?.compact ? "p-3 bg-gold/[0.06] border-gold/25" : "p-3",
+      options?.compact ? "px-2.5 py-3 sm:p-3 bg-gold/[0.06] border-gold/25" : "px-2.5 py-3 sm:p-3",
       isClickable ? "hover-lift hover:bg-white/[0.04] focus-visible:bg-white/[0.04]" : "",
       leaderboardUser.rank === 1
         ? "bg-gold/[0.08] border-gold/20"
@@ -232,7 +232,7 @@ export default function Home() {
           ) : null}
         </div>
 
-        {isClickable ? <ChevronRight aria-hidden="true" className="h-4 w-4 text-gold/70" /> : <span aria-hidden="true" />}
+        {isClickable ? <ChevronRight aria-hidden="true" className="hidden h-4 w-4 text-gold/70 sm:block" /> : <span aria-hidden="true" />}
       </>
     );
 
