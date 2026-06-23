@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Save, Calendar, Loader2, CheckCircle2, Download, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { SearchableSelect, type SearchableSelectOption } from "@/components/SearchableSelect";
 import { useUser } from "@clerk/nextjs";
@@ -111,10 +111,11 @@ export default function Predictions() {
   const [saving, setSaving] = useState<string | null>(null);
   const [savingBonus, setSavingBonus] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<Id<"users"> | null>(null);
+  const appliedSelectedUserParamRef = useRef(false);
   const matchesByGroup = matchesByGroupQuery ?? {};
   const teams = teamsQuery ?? [];
   const players = playersQuery ?? [];
-  const leaderboard = leaderboardQuery ?? [];
+  const leaderboard = useMemo(() => leaderboardQuery ?? [], [leaderboardQuery]);
   const userPredictions = userPredictionsQuery ?? [];
   const groups = Object.keys(matchesByGroup).sort();
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
@@ -167,6 +168,19 @@ export default function Predictions() {
       leastConcededTeam: userBonusPrediction?.leastConcededTeam ?? null,
     });
   }, [showSpecialPredictions, userBonusPrediction]);
+
+  useEffect(() => {
+    if (!predictionsLocked || appliedSelectedUserParamRef.current || leaderboard.length === 0) {
+      return;
+    }
+
+    const userIdFromUrl = new URLSearchParams(window.location.search).get("user");
+    const selectedParticipant = leaderboard.find((participant) => participant._id === userIdFromUrl);
+    if (selectedParticipant) {
+      setSelectedUserId(selectedParticipant._id);
+    }
+    appliedSelectedUserParamRef.current = true;
+  }, [predictionsLocked, leaderboard]);
 
   const playerOptions: SearchableSelectOption[] = players.map((player) => ({
     value: player._id,

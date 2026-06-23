@@ -35,6 +35,7 @@ export function BottomNav() {
             <Link
               key={href}
               href={href}
+              aria-current={isActive ? "page" : undefined}
               onClick={(event) => {
                 if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
                   return;

@@ -1,6 +1,8 @@
 import { mutation } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { recalculateLeaderboardInMutation } from "./scoring";
+import { v } from "convex/values";
+import { requireAdmin } from "./auth";
 
 /** Clerk IDs inventados; no inician sesión en Clerk pero aparecen en la quiniela. */
 const SEED_CLERK_PREFIX = "seed_demo_";
@@ -21,8 +23,18 @@ function randomScores(userIndex: number, matchIndex: number): { homeScore: numbe
  * Requiere datos de torneo cargados (`matches.seed`).
  */
 export const seedUsersAndPredictions = mutation({
-  args: {},
+  args: {
+    confirmation: v.literal("SEED_DEMO_DATA"),
+  },
+  returns: v.object({
+    usersInserted: v.number(),
+    predictionsInserted: v.number(),
+    bonusRowsInserted: v.number(),
+    matchesCount: v.number(),
+  }),
   handler: async (ctx) => {
+    await requireAdmin(ctx, "Solo administradores pueden cargar usuarios demo");
+
     const now = new Date().toISOString();
     const ensureGroup = async (name: string, invitationCode: string) => {
       const existing = await ctx.db

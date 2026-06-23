@@ -1,9 +1,9 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import type { MutationCtx } from "./_generated/server";
 import { recalculateLeaderboardInMutation } from "./scoring";
 import { players, teams, matches } from "./seedData";
 import type { Doc, Id } from "./_generated/dataModel";
+import { requireAdmin } from "./auth";
 
 type GroupedMatch = Doc<"matches"> & {
   homeTeamDetails: { name: string; code: string; flagUrl?: string } | null;
@@ -64,9 +64,49 @@ export const byGroup = query({
 });
 
 export const seed = mutation({
-  args: {},
+  args: {
+    confirmation: v.literal("RESET_TOURNAMENT_DATA"),
+  },
+  returns: v.object({
+    teamsInserted: v.number(),
+    playersInserted: v.number(),
+    matchesInserted: v.number(),
+  }),
   handler: async (ctx) => {
-    // Limpiar datos existentes
+    await requireAdmin(ctx, "Solo administradores pueden reiniciar el calendario del torneo");
+
+    // Resetear datos derivados para evitar referencias huérfanas cuando cambian IDs.
+    const existingPredictions = await ctx.db.query("predictions").collect();
+    for (const prediction of existingPredictions) {
+      await ctx.db.delete(prediction._id);
+    }
+
+    const existingBonusPredictions = await ctx.db.query("bonusPredictions").collect();
+    for (const bonusPrediction of existingBonusPredictions) {
+      await ctx.db.delete(bonusPrediction._id);
+    }
+
+    const existingExports = await ctx.db.query("predictionsExports").collect();
+    for (const exportRow of existingExports) {
+      if (exportRow.storageId) {
+        await ctx.storage.delete(exportRow.storageId);
+      }
+      await ctx.db.delete(exportRow._id);
+    }
+
+    const existingSettings = await ctx.db.query("tournamentSettings").collect();
+    for (const setting of existingSettings) {
+      await ctx.db.delete(setting._id);
+    }
+
+    const existingUsers = await ctx.db.query("users").collect();
+    for (const user of existingUsers) {
+      if (user.score !== 0) {
+        await ctx.db.patch(user._id, { score: 0 });
+      }
+    }
+
+    // Limpiar datos existentes del torneo
     const existingPlayers = await ctx.db.query("players").collect();
     for (const player of existingPlayers) {
       await ctx.db.delete(player._id);
@@ -135,17 +175,6 @@ export const seed = mutation({
   },
 });
 
-async function requireAdmin(ctx: MutationCtx) {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) throw new Error("Sin autenticación");
-  const user = await ctx.db
-    .query("users")
-    .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
-    .unique();
-  if (!user?.isAdmin) throw new Error("Solo administradores pueden cargar resultados");
-  return user;
-}
-
 export const setResult = mutation({
   args: {
     matchId: v.id("matches"),
@@ -157,7 +186,7 @@ export const setResult = mutation({
     awayOwnGoals: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    await requireAdmin(ctx, "Solo administradores pueden cargar resultados");
     const match = await ctx.db.get(args.matchId);
     if (!match) throw new Error("Partido no encontrado");
     const resultUpdatedAt = Date.now();

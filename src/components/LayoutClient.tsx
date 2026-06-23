@@ -162,6 +162,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
 function NavigationLink({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) {
   const { startNavigation } = useNavigationFeedback();
+  const pathname = usePathname();
+  const targetPath = href.split("#")[0] || "/";
+  const isActive = targetPath === "/" ? pathname === "/" : pathname.startsWith(targetPath);
 
   const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
@@ -172,7 +175,7 @@ function NavigationLink({ href, className, children }: { href: string; className
   };
 
   return (
-    <Link href={href} className={className} onClick={handleClick}>
+    <Link href={href} className={className} aria-current={isActive ? "page" : undefined} onClick={handleClick}>
       {children}
     </Link>
   );

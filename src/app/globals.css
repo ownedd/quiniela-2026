@@ -113,6 +113,11 @@ h4 {
   letter-spacing: -0.01em;
 }
 
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--gold-light);
+  outline-offset: 3px;
+}
+
 /* ===== Glass Cards ===== */
 
 .glass-card {
@@ -350,6 +355,11 @@ input[type="number"] {
   box-shadow: 0 6px 24px rgba(212, 168, 67, 0.35);
   filter: brightness(1.08);
 }
+.btn-gold:focus-visible {
+  box-shadow:
+    0 0 0 3px rgba(240, 208, 120, 0.35),
+    0 6px 24px rgba(212, 168, 67, 0.35);
+}
 .btn-gold:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -375,4 +385,24 @@ input[type="number"] {
 }
 .nav-link:hover::after {
   width: 100%;
+}
+
+.nav-link:focus-visible::after,
+.nav-link[aria-current="page"]::after {
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  .hover-lift:hover {
+    transform: none;
+  }
 }

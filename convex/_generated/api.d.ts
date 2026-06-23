@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as auth from "../auth.js";
 import type * as bonusPredictions from "../bonusPredictions.js";
 import type * as matches from "../matches.js";
 import type * as predictions from "../predictions.js";
@@ -28,6 +29,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  auth: typeof auth;
   bonusPredictions: typeof bonusPredictions;
   matches: typeof matches;
   predictions: typeof predictions;

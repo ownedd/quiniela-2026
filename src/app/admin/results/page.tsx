@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { Save, Calendar, Loader2, Lock, Unlock } from "lucide-react";
+import { Save, Calendar, Loader2, Lock, Unlock, Plus, Copy, Users } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -55,6 +55,14 @@ type TeamOption = {
 
 type MatchStatusFilter = "unfinished" | "finished" | "all";
 
+type QuinielaGroupSummary = {
+  _id: Id<"quinielaGroups">;
+  name: string;
+  invitationCode: string;
+  createdAt: string;
+  memberCount: number;
+};
+
 const MATCH_STATUS_FILTER_OPTIONS: { value: MatchStatusFilter; label: string }[] = [
   { value: "unfinished", label: "No finalizados" },
   { value: "finished", label: "Finalizados" },
@@ -86,6 +94,7 @@ export default function AdminResultsPage() {
   const bootstrapAsFirstAdmin = useMutation(api.users.bootstrapAsFirstAdmin);
   const settings = useQuery(api.tournamentSettings.get);
   const exportSummary = useQuery(api.predictionsExports.adminSummary, isLoaded && user && isAdmin ? {} : "skip");
+  const quinielaGroups = useQuery(api.quinielaGroups.listForAdmin, isLoaded && user && isAdmin ? {} : "skip") as QuinielaGroupSummary[] | undefined;
   const matchesByGroup =
     (useQuery(api.matches.byGroup) as Record<string, AdminMatchView[]> | undefined) ?? EMPTY_MATCHES_BY_GROUP;
   const teams = (useQuery(api.teams.list) as TeamOption[] | undefined) ?? EMPTY_TEAMS;
@@ -93,9 +102,14 @@ export default function AdminResultsPage() {
   const setPredictionsLocked = useMutation(api.tournamentSettings.setPredictionsLocked);
   const setResult = useMutation(api.matches.setResult);
   const addPlayer = useMutation(api.bonusPredictions.addPlayer);
+  const createGroup = useMutation(api.quinielaGroups.create);
   const [savingMatch, setSavingMatch] = useState<Id<"matches"> | null>(null);
   const [togglingLock, setTogglingLock] = useState(false);
   const [bootstrapping, setBootstrapping] = useState(false);
+  const [creatingGroup, setCreatingGroup] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [newGroupCode, setNewGroupCode] = useState("");
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const groups = Object.keys(matchesByGroup).sort();
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
@@ -179,6 +193,35 @@ export default function AdminResultsPage() {
       setMessage({ type: "error", text: err instanceof Error ? err.message : "Error" });
     } finally {
       setTogglingLock(false);
+    }
+  };
+
+  const handleCreateGroup = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setCreatingGroup(true);
+    setMessage(null);
+    try {
+      const group = await createGroup({
+        name: newGroupName,
+        invitationCode: newGroupCode.trim() ? newGroupCode : undefined,
+      });
+      setNewGroupName("");
+      setNewGroupCode("");
+      setMessage({ type: "success", text: `Grupo ${group.name} creado con código ${group.invitationCode}.` });
+    } catch (err) {
+      setMessage({ type: "error", text: err instanceof Error ? err.message : "Error al crear grupo" });
+    } finally {
+      setCreatingGroup(false);
+    }
+  };
+
+  const handleCopyInvitationCode = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedCode(code);
+      setTimeout(() => setCopiedCode(null), 1600);
+    } catch {
+      setMessage({ type: "error", text: "No se pudo copiar el código. Cópialo manualmente." });
     }
   };
 
@@ -320,6 +363,86 @@ export default function AdminResultsPage() {
           {message.text}
         </p>
       )}
+
+      <section aria-labelledby="groups-heading" className="glass-card p-4 sm:p-5">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 id="groups-heading" className="font-bold font-display uppercase">Grupos de quiniela</h3>
+            <p className="mt-1 text-sm text-gray-400">Crea grupos y comparte el código para que cada participante se una.</p>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-400">
+            <Users aria-hidden="true" className="h-4 w-4 text-gold" />
+            <span>{quinielaGroups ? `${quinielaGroups.length} grupo${quinielaGroups.length === 1 ? "" : "s"}` : "Cargando grupos"}</span>
+          </div>
+        </div>
+
+        <form onSubmit={handleCreateGroup} className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px_auto]">
+          <label className="flex flex-col gap-2 text-xs font-display uppercase tracking-[0.18em] text-gold/70">
+            Nombre
+            <input
+              value={newGroupName}
+              onChange={(event) => setNewGroupName(event.target.value)}
+              placeholder="Familia, oficina, amigos..."
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-body normal-case tracking-normal text-gray-100 outline-none transition-all placeholder:text-gray-600 focus:border-gold focus:ring-1 focus:ring-gold"
+              disabled={creatingGroup}
+              required
+              minLength={2}
+              maxLength={60}
+            />
+          </label>
+          <label className="flex flex-col gap-2 text-xs font-display uppercase tracking-[0.18em] text-gold/70">
+            Código opcional
+            <input
+              value={newGroupCode}
+              onChange={(event) => setNewGroupCode(event.target.value.toUpperCase())}
+              placeholder="FAMILIA26"
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-body normal-case tracking-normal text-gray-100 outline-none transition-all placeholder:text-gray-600 focus:border-gold focus:ring-1 focus:ring-gold"
+              disabled={creatingGroup}
+              maxLength={12}
+              pattern="[A-Z0-9]{3,12}"
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={creatingGroup || newGroupName.trim().length < 2}
+            className="btn-gold inline-flex items-center justify-center gap-2 self-end px-5 py-3 text-sm disabled:cursor-not-allowed"
+          >
+            {creatingGroup ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <Plus aria-hidden="true" className="h-4 w-4" />}
+            Crear
+          </button>
+        </form>
+
+        <div className="mt-4 grid gap-2">
+          {quinielaGroups === undefined ? (
+            <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-gold">
+              <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
+              Cargando grupos...
+            </div>
+          ) : quinielaGroups.length === 0 ? (
+            <p className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-gray-500">Aún no hay grupos creados.</p>
+          ) : (
+            quinielaGroups.map((group) => (
+              <div key={group._id} className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-gray-100">{group.name}</p>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    {group.memberCount} participante{group.memberCount === 1 ? "" : "s"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCopyInvitationCode(group.invitationCode)}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-gold/20 bg-gold/10 px-3 py-2 text-sm font-bold text-gold transition-colors hover:bg-gold/15"
+                  aria-label={`Copiar código de invitación ${group.invitationCode}`}
+                >
+                  <Copy aria-hidden="true" className="h-4 w-4" />
+                  {copiedCode === group.invitationCode ? "Copiado" : group.invitationCode}
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
 
       <AutoBonusResultsSection
         variant="admin"
