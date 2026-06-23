@@ -137,9 +137,9 @@ export default function Home() {
       <div className="space-y-2">
         {lastUpdatedMatchLabel ? (
           <div className="px-1">
-            <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-gold/15 bg-gold/[0.06] px-3 py-1 text-[11px] font-medium text-gold-light/90">
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-gold shadow-[0_0_8px_rgba(212,168,67,0.7)]" />
-              <span className="truncate">{lastUpdatedMatchLabel}</span>
+            <div className="inline-flex max-w-full items-start gap-2 rounded-full border border-gold/15 bg-gold/[0.06] px-3 py-1 text-[11px] font-medium text-gold-light/90">
+              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-gold shadow-[0_0_8px_rgba(212,168,67,0.7)]" />
+              <span className="min-w-0 leading-snug">{lastUpdatedMatchLabel}</span>
             </div>
           </div>
         ) : null}
